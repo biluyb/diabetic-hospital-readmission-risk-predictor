@@ -1,0 +1,28 @@
+# FUSE AI-201 Module 5 - GlucoShield CDSS
+# Diabetes Hospital Readmission Risk Predictor
+# Python 3.10+ required
+
+# --- Core Data Science ---
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.10.0
+
+# --- Machine Learning ---
+scikit-learn>=1.4.0
+xgboost>=2.0.0
+lightgbm>=4.0.0
+joblib>=1.3.0
+
+# --- Explainability ---
+shap>=0.44.0
+
+# --- Visualization ---
+matplotlib>=3.7.0
+seaborn>=0.13.0
+
+# --- Web Application / Prototype ---
+streamlit>=1.32.0
+
+# --- Data Download ---
+requests>=2.31.0
+ucimlrepo>=0.0.7
