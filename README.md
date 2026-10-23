@@ -17,7 +17,7 @@ It enables discharge planners, case managers, and attending physicians to identi
 ## Team Members (Group 04)
 | # | Name | Role |
 |---|---|---|
-| 1 | **Bililign Yibgeta Amare** ⭐ | **Team Lead \| Data Engineering, ML Modeling, Evaluation, Prototype, Testing & Documentation** |
+| 1 | **Bililign Yibgeta Amare**  | **Team Lead \| Data Engineering, ML Modeling, Evaluation, Prototype, Testing & Documentation** |
 | 2 | Gebreslase Getachew Alemu | Domain Specialist / Clinical Workflow |
 | 3 | Belay Tilahun Alene | Data Engineer / Preprocessing & Pipeline |
 | 4 | Chalachew Getu Amarebet | ML Engineer / Hyperparameter Tuning & Evaluation |
