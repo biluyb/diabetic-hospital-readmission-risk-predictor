@@ -1,0 +1,182 @@
+[
+  {
+    "run_id": "EXP-001-TRIVIAL",
+    "timestamp": "2026-11-11 02:25:28",
+    "model_name": "Trivial Majority Baseline",
+    "model_family": "Heuristic / Majority Vote",
+    "hyperparameters": {
+      "strategy": "predict_constant_zero"
+    },
+    "training_config": {
+      "dataset": "UCI Diabetes 130-US Hospitals (1999-2008)",
+      "cohort_clean_size": 69990,
+      "train_samples": 55989,
+      "test_samples": 13998,
+      "train_test_split": "80/20 Stratified",
+      "random_state": 42,
+      "target_variable": "readmitted (<30d vs >=30d/None)",
+      "positive_class_ratio": "8.98%",
+      "features_total": 155
+    },
+    "metrics": {
+      "test_roc_auc": 0.5,
+      "clinical_recall_th045": 0.0,
+      "precision": 0.0,
+      "accuracy": 0.9102,
+      "f1_score": 0.0,
+      "decision_threshold": 0.5
+    },
+    "artifact_path": "N/A",
+    "notes": "Reference baseline predicting zero readmissions. Demonstrates class imbalance accuracy trap."
+  },
+  {
+    "run_id": "EXP-002-LOGREG",
+    "timestamp": "2026-11-11 02:25:28",
+    "model_name": "Regularized Logistic Regression",
+    "model_family": "Linear Classifier",
+    "hyperparameters": {
+      "solver": "lbfgs",
+      "C": 1.0,
+      "max_iter": 1000,
+      "class_weight": "balanced",
+      "penalty": "l2"
+    },
+    "training_config": {
+      "dataset": "UCI Diabetes 130-US Hospitals (1999-2008)",
+      "cohort_clean_size": 69990,
+      "train_samples": 55989,
+      "test_samples": 13998,
+      "train_test_split": "80/20 Stratified",
+      "random_state": 42,
+      "target_variable": "readmitted (<30d vs >=30d/None)",
+      "positive_class_ratio": "8.98%",
+      "features_total": 155
+    },
+    "metrics": {
+      "test_roc_auc": 0.6469,
+      "clinical_recall_th045": 0.5306,
+      "precision": 0.1388,
+      "accuracy": 0.6622,
+      "f1_score": 0.2201,
+      "decision_threshold": 0.45
+    },
+    "artifact_path": "models/logistic_regression_baseline.joblib",
+    "notes": "Linear benchmark model with L2 regularization and balanced class weighting."
+  },
+  {
+    "run_id": "EXP-003-RF",
+    "timestamp": "2026-11-11 02:25:28",
+    "model_name": "Random Forest Classifier",
+    "model_family": "Ensemble Bagging",
+    "hyperparameters": {
+      "n_estimators": 200,
+      "max_depth": 12,
+      "min_samples_split": 20,
+      "min_samples_leaf": 10,
+      "class_weight": "balanced_subsample"
+    },
+    "training_config": {
+      "dataset": "UCI Diabetes 130-US Hospitals (1999-2008)",
+      "cohort_clean_size": 69990,
+      "train_samples": 55989,
+      "test_samples": 13998,
+      "train_test_split": "80/20 Stratified",
+      "random_state": 42,
+      "target_variable": "readmitted (<30d vs >=30d/None)",
+      "positive_class_ratio": "8.98%",
+      "features_total": 155
+    },
+    "metrics": {
+      "test_roc_auc": 0.6462,
+      "train_roc_auc": 0.8051,
+      "clinical_recall_th045": 0.4391,
+      "precision": 0.1582,
+      "accuracy": 0.7397,
+      "f1_score": 0.2326,
+      "decision_threshold": 0.45
+    },
+    "artifact_path": "models/random_forest_model.joblib",
+    "notes": "Ensemble tree model showing train-test generalization gap (0.805 vs 0.646)."
+  },
+  {
+    "run_id": "EXP-004-LGBM",
+    "timestamp": "2026-11-11 02:25:28",
+    "model_name": "LightGBM Classifier",
+    "model_family": "Gradient Boosted Trees",
+    "hyperparameters": {
+      "n_estimators": 250,
+      "max_depth": 5,
+      "num_leaves": 25,
+      "learning_rate": 0.04,
+      "subsample": 0.85,
+      "scale_pos_weight": 10.14,
+      "reg_alpha": 0.5,
+      "reg_lambda": 2.0
+    },
+    "training_config": {
+      "dataset": "UCI Diabetes 130-US Hospitals (1999-2008)",
+      "cohort_clean_size": 69990,
+      "train_samples": 55989,
+      "test_samples": 13998,
+      "train_test_split": "80/20 Stratified",
+      "random_state": 42,
+      "target_variable": "readmitted (<30d vs >=30d/None)",
+      "positive_class_ratio": "8.98%",
+      "features_total": 155
+    },
+    "metrics": {
+      "test_roc_auc": 0.6465,
+      "clinical_recall_th045": 0.537,
+      "precision": 0.1384,
+      "accuracy": 0.6582,
+      "f1_score": 0.2201,
+      "decision_threshold": 0.45
+    },
+    "artifact_path": "models/lightgbm_model.joblib",
+    "notes": "Fast histogram-based gradient boosting classifier."
+  },
+  {
+    "run_id": "EXP-005-XGBOOST-FINAL",
+    "timestamp": "2026-11-11 02:25:28",
+    "model_name": "XGBoost Classifier (Selected Primary)",
+    "model_family": "Gradient Boosted Trees",
+    "hyperparameters": {
+      "n_estimators": 250,
+      "max_depth": 5,
+      "learning_rate": 0.04,
+      "subsample": 0.85,
+      "colsample_bytree": 0.85,
+      "scale_pos_weight": 10.14,
+      "reg_alpha": 0.5,
+      "reg_lambda": 2.0,
+      "eval_metric": "auc"
+    },
+    "training_config": {
+      "dataset": "UCI Diabetes 130-US Hospitals (1999-2008)",
+      "cohort_clean_size": 69990,
+      "train_samples": 55989,
+      "test_samples": 13998,
+      "train_test_split": "80/20 Stratified",
+      "random_state": 42,
+      "target_variable": "readmitted (<30d vs >=30d/None)",
+      "positive_class_ratio": "8.98%",
+      "features_total": 155
+    },
+    "metrics": {
+      "test_roc_auc": 0.6465,
+      "pr_auc": 0.158,
+      "clinical_recall_th045": 0.6571,
+      "specificity_th045": 0.5454,
+      "precision_th045": 0.1248,
+      "accuracy_th045": 0.5554,
+      "f1_score_th045": 0.2098,
+      "decision_threshold": 0.45,
+      "true_positives": 826,
+      "false_negatives": 431,
+      "true_negatives": 6949,
+      "false_positives": 5792
+    },
+    "artifact_path": "models/xgboost_final_model.joblib",
+    "notes": "Selected primary operational model. Meets clinical safety sensitivity target (Recall >= 65%) at th=0.45."
+  }
+]

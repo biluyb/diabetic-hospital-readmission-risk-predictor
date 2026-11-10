@@ -1,177 +1,269 @@
-# GlucoShield CDSS — Diabetes Hospital Readmission Risk Predictor
-**FUSE AI-201 Capstone | Module 5: AI Project Implementation**  
-**Group 04 | Cohort: YEEAP**
+# 🏥 GlucoShield CDSS — Diabetes Hospital Readmission Risk Predictor
+
+**FUSE AI-201 Capstone: AI Model Development, Implementation & MLOps (Modules 4, 5 & 6)**  
+**Group:** Group 04 | **Cohort:** Youth Empowerment and Employment in AI Program (YEEAP)  
+**Selected Primary Model:** Calibrated XGBoost Classifier (`models/xgboost_final_model.joblib`)  
+**Clinical Decision Threshold:** 0.45 (Prioritizing Sensitivity $\ge 65\%$ for patient safety)  
 
 ---
 
-## Project Overview
-**GlucoShield** is an AI-powered Clinical Decision Support System (CDSS) that predicts whether a diabetic inpatient patient is at risk of **unplanned hospital readmission within 30 days** of discharge.
-
-It enables discharge planners, case managers, and attending physicians to identify high-risk patients in advance and allocate targeted post-acute interventions — such as home health nurse visits, clinical pharmacist medication reconciliation, and priority 7-day clinic follow-ups — before the patient leaves the hospital.
-
-**Dataset:** [UCI Diabetes 130-US Hospitals 1999–2008](https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008)  
-**Final Model:** XGBoost Classifier (Test ROC-AUC: 0.647, Clinical Recall @ th=0.45: 65.7%)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.15-blue.svg)](https://www.python.org/)
+[![XGBoost](https://img.shields.io/badge/model-XGBoost%20v3.4-orange.svg)](https://xgboost.readthedocs.io/)
+[![SHAP](https://img.shields.io/badge/explainability-TreeSHAP-brightgreen.svg)](https://shap.readthedocs.io/)
+[![Streamlit](https://img.shields.io/badge/dashboard-Streamlit-red.svg)](https://streamlit.io/)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-teal.svg)](https://fastapi.tiangolo.com/)
+[![Docker](https://img.shields.io/badge/container-Docker-blue.svg)](https://www.docker.com/)
+[![Tests Passing](https://img.shields.io/badge/tests-17%2F17%20passed-success.svg)](tests/)
 
 ---
 
-## Team Members (Group 04)
-| # | Name | Role |
+## 📌 Executive Summary
+
+**GlucoShield** is an AI-powered Clinical Decision Support System (CDSS) designed to assist hospital discharge planners, attending physicians, and case managers in predicting the risk of **30-day unplanned hospital readmission** among diabetic inpatients.
+
+Unplanned hospital readmissions in diabetic populations impose severe clinical morbidity on patients and heavy financial penalties on healthcare systems under frameworks like the CMS Hospital Readmissions Reduction Program (HRRP). By coupling calibrated gradient-boosted decision trees with **TreeSHAP local feature attribution**, GlucoShield delivers an interpretable risk score alongside a tailored post-discharge care checklist (home health nursing, medication reconciliation, and accelerated 7-day clinic follow-ups) before the patient departs the hospital.
+
+---
+
+## 👥 Team Members (Group 04)
+
+| # | Name | Core Responsibilities & Contributions |
 |---|---|---|
-| 1 | **Bililign Yibgeta Amare**  | **Team Lead \| Data Engineering, ML Modeling, Evaluation, Prototype, Testing & Documentation** |
-| 2 | Gebreslase Getachew Alemu | Domain Specialist / Clinical Workflow |
-| 3 | Belay Tilahun Alene | Data Engineer / Preprocessing & Pipeline |
-| 4 | Chalachew Getu Amarebet | ML Engineer / Hyperparameter Tuning & Evaluation |
-| 5 | Dagne Amdetsion | Software Engineer / Prototype & App Dev |
-| 6 | Ebrahim Oumer Ali | DevOps & Test Engineer / Edge-case Suite |
-| 7 | Gutema Wako Anota | Data Analyst / EDA & Visualizations |
-| 8 | Sena AmareSena Amare | Responsible AI / Ethics & Fair ML |
-| 9 | Shanbel mohammed ali | Documentation & Clinical Reporting |
-| 10 | Tessema Ayele Alemu | Clinical Metric Validation & Threshold Calibration |
-| 11 | Yibeltal Meslie Alemayehu | System Integration & Deployment |
+| 1 | **Bililign Yibgeta Amare** ⭐ | **Team Lead \| Architecture, ML Modeling, Pipeline, Validation, Testing & Documentation** |
+| 2 | **Gebreslase Getachew Alemu** | Domain Specialist / Clinical Workflow & ICD-9 Grouping |
+| 3 | **Belay Tilahun Alene** | Data Engineer / Preprocessing, Imputation & Pipeline |
+| 4 | **Chalachew Getu Amarebet** | ML Engineer / Hyperparameter Tuning & Model Selection |
+| 5 | **Dagne Amdetsion** | Software Engineer / Streamlit Prototype & UI Development |
+| 6 | **Ebrahim Oumer Ali** | DevOps & Test Engineer / Test Suite & Verification |
+| 7 | **Gutema Wako Anota** | Data Analyst / EDA & Clinical Visualizations |
+| 8 | **Sena AmareSena Amare** | Responsible AI / Ethics, Fairness Auditing & Governance |
+| 9 | **Shanbel mohammed ali** | Documentation & Clinical Protocol Reporting |
+| 10 | **Tessema Ayele Alemu** | Clinical Metric Validation & Decision Threshold Calibration |
+| 11 | **Yibeltal Meslie Alemayehu** | System Integration, Deployment & Maintenance Planning |
 
 ---
 
-## Repository Structure
+## 🏗️ System Architecture & Workflow
+
 ```
-.
-├── data/
-│   ├── diabetic_data.csv           # UCI dataset (auto-downloaded)
-│   └── IDS_mapping.csv             # ICD/Admission code mapping definitions
-├── src/
-│   ├── data_pipeline.py            # Task 3: Data cleaning, feature engineering, train/test split
-│   ├── eda.py                      # Task 4: Exploratory Data Analysis & chart generation
-│   ├── models.py                   # Tasks 5 & 6: Baseline + candidate model training
-│   ├── evaluate.py                 # Task 7: Evaluation metrics, ROC curves, error audit
-│   ├── test_suite.py               # Task 8: Whole-chain edge-case system tests
-│   └── explainability.py           # TreeSHAP patient-level feature attribution engine
-├── models/                         # Serialized trained models (.joblib)
-├── plots/                          # Auto-generated evaluation & EDA charts (.png)
-├── app.py                          # Interactive Streamlit Clinical Dashboard
-├── run_full_pipeline.py            # Master pipeline runner (executes all 8 tasks)
-├── download_data.py                # Automated UCI dataset download script
-├── CAPSTONE_MODULE5_REPORT.md      # Full 17-section written project report
-├── requirements.txt                # Python dependency list
-└── README.md                       # This file
+Patient Clinical Data at Discharge
+               │
+               ▼
+┌────────────────────────────────────────────────┐
+│ Input Validation & Sanitization Engine         │
+│ (src/validation.py)                            │
+│  - Bounds checking (LOS 1-14, labs 1-132)      │
+│  - Rejection of malformed / negative inputs    │
+│  - Graceful missing value imputation           │
+└───────────────────────┬────────────────────────┘
+                        │
+                        ▼
+┌────────────────────────────────────────────────┐
+│ Preprocessing & Feature Engineering            │
+│ (src/data_pipeline.py / preprocessor.joblib)   │
+│  - Causal cohort filter (removes deceased)     │
+│  - Patient deduplication (first admission only)│
+│  - ICD-9 diagnosis mapping (9 clinical buckets)│
+│  - Total visits, procedure intensity, med tags │
+└───────────────────────┬────────────────────────┘
+                        │
+                        ▼
+┌────────────────────────────────────────────────┐
+│ Trained Primary Classifier: XGBoost            │
+│ (models/xgboost_final_model.joblib)            │
+│  - scale_pos_weight = 10.14 for class balance  │
+│  - Output: 30-day readmission probability P    │
+└───────────────────────┬────────────────────────┘
+                        │
+           ┌────────────┴────────────┐
+           │                         │
+           ▼                         ▼
+┌──────────────────────┐  ┌──────────────────────┐
+│ Clinical Threshold   │  │ TreeSHAP Explainer   │
+│ Classification (0.45)│  │ (src/explainability) │
+│  - Low Risk (< 0.40) │  │  - Top-5 patient risk│
+│  - Borderline (0.45) │  │    drivers & offsets │
+│  - High Risk (>=0.50)│  │  - Fast <15ms render │
+└──────────┬───────────┘  └──────────┬───────────┘
+           │                         │
+           └────────────┬────────────┘
+                        │
+                        ▼
+┌────────────────────────────────────────────────┐
+│ Tailored Post-Discharge Action Plan Checklist  │
+│  - Priority home nursing visit within 48h      │
+│  - Clinical pharmacist medication review       │
+│  - Accelerated 7-day clinic follow-up          │
+└────────────────────────────────────────────────┘
 ```
+
+Detailed architecture specifications, including Mermaid diagrams and MLOps component flows, are documented in [`documentation/architecture.md`](documentation/architecture.md).
 
 ---
 
-## Installation
+## 📊 Benchmark Evaluation & Results
 
-### Prerequisites
-- Python 3.10 or higher
-- pip (Python package installer)
-- Internet connection (for initial dataset download)
+Evaluated on an independent **20% holdout test set ($n = 13,998$ encounters)** under stratified splitting (`random_state=42`):
 
-### Step 1: Install Dependencies
-Open a terminal in the project root directory and run:
+| Model | Test ROC-AUC | PR-AUC | Sensitivity / Recall (th=0.45) | Specificity (th=0.45) | Precision (th=0.45) | Status |
+| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Trivial Majority Baseline** | 0.5000 | 0.0898 | 0.00% | 100.00% | 0.00% | Reference only |
+| **Logistic Regression (L2, Balanced)** | 0.6469 | 0.1572 | 53.06% | 67.51% | 13.88% | Linear benchmark |
+| **Random Forest (Balanced)** | 0.6462 | 0.1554 | 43.91% | 76.92% | 15.82% | Overfits training set |
+| **LightGBM Classifier** | 0.6465 | 0.1570 | 53.70% | 67.01% | 13.84% | Competitive |
+| **XGBoost Classifier (Selected)** | **0.6465** | **0.1580** | **65.71%** | **54.54%** | **12.48%** | **✅ Meets clinical target ($\ge 65\%$)** |
 
+### Confusion Matrix Breakdown (Tuned Threshold = 0.45)
+- **True Positives (TP): 826** — High-risk patients correctly identified for intensive transition care.
+- **False Negatives (FN): 431** — High-risk patients missed by the model.
+- **True Negatives (TN): 6,949** — Stable patients correctly cleared for routine discharge.
+- **False Positives (FP): 5,792** — Low-risk patients flagged for follow-up (clinically safe failure mode).
+
+---
+
+## 🧪 Automated Testing & Robustness Suite
+
+GlucoShield includes a 17-test automated verification suite (`tests/`):
+- **Preprocessing & ICD-9 Mapping:** [`tests/test_preprocessing.py`](tests/test_preprocessing.py)
+- **Model Artifact Integrity:** [`tests/test_model_loading.py`](tests/test_model_loading.py)
+- **Validation & Bounds:** [`tests/test_validation.py`](tests/test_validation.py)
+- **Prediction & Demonstration Scenarios:** [`tests/test_prediction.py`](tests/test_prediction.py)
+- **Explainability Structure:** [`tests/test_explainability.py`](tests/test_explainability.py)
+- **FastAPI Endpoints:** [`tests/test_api.py`](tests/test_api.py)
+
+Run the test suite:
 ```bash
+python -m pytest tests/ -v
+```
+
+---
+
+## 🚀 Quickstart Guide
+
+### 1. Installation
+```bash
+# Clone the repository
+git clone https://github.com/biluyb/diabetic-hospital-readmission-risk-predictor.git
+cd diabetic-hospital-readmission-risk-predictor
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
----
-
-## Running the Project
-
-### Option A: Run the Complete Pipeline (Recommended)
-This single command executes all 8 Module 5 tasks in sequence:
-
+### 2. Run the Full End-to-End Pipeline
+Executes data download, cleaning, training, evaluation, testing, experiment logging, and drift monitoring:
 ```bash
 python run_full_pipeline.py
 ```
 
-This will:
-1. Download and verify the UCI dataset
-2. Clean, deduplicate, and preprocess the data
-3. Generate all EDA visualizations → saved to `plots/`
-4. Train Baseline (Logistic Regression), Random Forest, XGBoost, and LightGBM models
-5. Evaluate all models on the holdout test set
-6. Run the Stage 8 robustness test suite
-7. Save all trained models → saved to `models/`
-
-### Option B: Run Individual Stages
-Each task can also be run independently as a Python module:
-
-```bash
-# Task 3: Data preparation
-python -m src.data_pipeline
-
-# Task 4: Exploratory Data Analysis
-python -m src.eda
-
-# Tasks 5 & 6: Model training
-python -m src.models
-
-# Task 7: Model evaluation
-python -m src.evaluate
-
-# Task 8: System testing
-python -m src.test_suite
-```
-
----
-
-## Launching the Interactive Prototype
-
-After running the pipeline at least once (to train models), launch the web dashboard:
-
+### 3. Launch the Streamlit Interactive Dashboard
 ```bash
 streamlit run app.py
 ```
+Open **http://localhost:8501** in your browser.
 
-Then open your browser at **http://localhost:8501**
+### 4. Launch the Optional FastAPI Microservice
+```bash
+uvicorn src.api:api_app --host 0.0.0.0 --port 8000 --reload
+```
+- Swagger UI Documentation: **http://localhost:8000/docs**
+- Health Check: `curl http://localhost:8000/health`
 
-### Dashboard Features
-| Feature | Description |
-|---|---|
-| **Patient Risk Assessment** | Enter patient clinical parameters or load a preset scenario to get instant 30-day readmission risk prediction |
-| **SHAP Explainability** | Real-time top-5 feature attribution showing what's driving each individual patient's score |
-| **Risk Tier Color Coding** | 🔴 High Risk (≥52%) / 🟡 Moderate Risk (40–52%) / 🟢 Low Risk (<40%) |
-| **Discharge Checklist** | Dynamically generated post-discharge care intervention checklist tailored to risk tier |
-| **Stage 8 Validation Sandbox** | Live edge-case testing within the browser |
-| **Model Performance Explorer** | ROC curves, Confusion Matrices, Feature Importance charts, EDA visualizations |
-
-### Preset Clinical Scenarios
-The sidebar offers three pre-built patient scenarios:
-- **Scenario A:** High-Risk Elderly Patient (3 prior inpatient stays, insulin up-titrated)
-- **Scenario B:** Low-Risk Stable Patient (first admission, well-controlled HbA1c)
-- **Scenario C:** Moderate-Risk Patient (recent medication adjustment, 1 prior inpatient)
+### 5. Run with Docker
+```bash
+docker build -t glucoshield:latest .
+docker run -p 8501:8501 -p 8000:8000 glucoshield:latest
+```
 
 ---
 
-## Key Results
+## 🧭 Project Portfolio Directory Layout
 
-| Model | Test ROC-AUC | Recall (Clinical th=0.45) | Status |
-|---|:---:|:---:|---|
-| Trivial Majority Baseline | 0.500 | 0.0% | Reference only |
-| Logistic Regression (Baseline) | 0.647 | 53.1% | First working model |
-| Random Forest | 0.646 | 43.9% | Overfits training set |
-| LightGBM | 0.647 | 53.7% | Competitive |
-| **XGBoost (Selected)** | **0.647** | **65.7%** | **✅ Meets clinical safety target** |
+```
+GlucoShield/
+├── app.py                            # Streamlit Clinical Decision Support Dashboard
+├── run_full_pipeline.py              # Master end-to-end pipeline runner
+├── download_data.py                  # Automated UCI dataset acquisition script
+├── Dockerfile                        # Production container specification
+├── .dockerignore                     # Docker build exclusions
+├── requirements.txt                  # Pinned Python dependencies
+├── retrospective.md                  # One-page capstone student reflection
+├── simulated_data_statement.md       # Real vs. simulated data declaration
+│
+├── src/
+│   ├── data_pipeline.py              # Data cleaning, deduplication, ICD-9 mapping
+│   ├── validation.py                 # Centralized clinical input validation engine
+│   ├── models.py                     # Baseline and ensemble model training
+│   ├── evaluate.py                   # Holdout evaluation, ROC curves, error audit
+│   ├── explainability.py             # TreeSHAP feature attribution engine
+│   ├── experiment_tracker.py         # JSON/CSV experiment tracking system
+│   ├── test_suite.py                 # 5-case system robustness test harness
+│   └── api.py                        # FastAPI REST microservice (GET /health, POST /predict)
+│
+├── tests/
+│   ├── test_preprocessing.py         # Preprocessing & ICD-9 unit tests
+│   ├── test_model_loading.py         # Model artifact loading tests
+│   ├── test_validation.py            # Input validation & bounds tests
+│   ├── test_prediction.py            # Inference & demonstration scenario tests
+│   ├── test_explainability.py        # TreeSHAP structure tests
+│   └── test_api.py                   # FastAPI integration tests
+│
+├── monitoring/
+│   ├── drift_detector.py             # PSI & Kolmogorov-Smirnov drift detection
+│   ├── monitor.py                    # Simulated production monitoring pipeline
+│   ├── run_monitoring.py             # Monitoring report generator
+│   └── drift_report.md               # Generated drift audit report
+│
+├── evaluation/
+│   ├── experiment_runs.json          # Reproducible experiment runs log (JSON)
+│   └── experiment_runs.csv           # Tabular experiment comparison (CSV)
+│
+├── models/                           # Serialized model artifacts (.joblib)
+│   ├── xgboost_final_model.joblib
+│   ├── preprocessor.joblib
+│   ├── feature_names.joblib
+│   ├── feature_metadata.joblib
+│   ├── evaluation_summary.joblib
+│   └── system_test_report.joblib
+│
+├── plots/                            # Auto-generated ROC, CM, EDA & Drift plots (.png)
+│   ├── roc_curve.png
+│   ├── confusion_matrix.png
+│   ├── feature_importance.png
+│   ├── monitoring_drift.png
+│   └── [EDA distribution plots]
+│
+└── documentation/                    # Complete 8-document governance suite
+    ├── model_card.md                 # Complete 8-section Model Card (Mitchell et al.)
+    ├── architecture.md               # Detailed technical architecture & Mermaids
+    ├── monitoring_plan.md            # Production monitoring strategy & retraining
+    ├── drift_report.md               # Real-time generated drift report
+    ├── governance_plan.md            # Clinical ethics, HIPAA privacy, bias audits
+    ├── support_and_maintenance.md    # SLA, bug triage, fallback operations
+    ├── deployment_guide.md           # Local, Docker, & Streamlit Cloud guides
+    ├── experiment_tracking.md        # Lineage schemas & historical run logs
+    └── limitations_and_future_work.md # SDoH, ICD-10 crosswalk, research roadmap
+```
 
 ---
 
-## Evaluation Plots
-All plots are saved automatically to the `plots/` directory:
-- `target_distribution.png` — Class imbalance visualization
-- `prior_inpatient_vs_readmission.png` — Prior admissions vs readmission rate
-- `primary_diagnosis_readmission.png` — Readmission by ICD-9 disease category
-- `length_of_stay_distribution.png` — Hospital stay stratified by outcome
-- `correlation_heatmap.png` — Clinical feature correlation matrix
-- `roc_curve.png` — Multi-model ROC comparison on holdout test set
-- `confusion_matrix.png` — Side-by-side at standard (0.50) and clinical (0.45) thresholds
-- `feature_importance.png` — Top 20 XGBoost clinical predictors
+## 📚 Complete Documentation Suite
+
+- 📋 [**Model Card**](documentation/model_card.md) — 8-section clinical model card covering intended use, inputs, ethical considerations, and results.
+- 📐 [**System Architecture**](documentation/architecture.md) — Detailed ASCII and Mermaid diagrams covering client flow and MLOps components.
+- 📈 [**Monitoring Plan**](documentation/monitoring_plan.md) — Production drift detection, metric definitions, and retraining policies.
+- 🔍 [**Drift Report**](documentation/drift_report.md) — Empirical PSI and KS test statistics on simulated production cohorts.
+- 🛡️ [**Governance Plan**](documentation/governance_plan.md) — Responsible AI principles, HIPAA privacy, and demographic fairness audits.
+- 🛠️ [**Support & Maintenance**](documentation/support_and_maintenance.md) — SLOs, incident response, fallback operations, and model lifecycle.
+- 🚀 [**Deployment Guide**](documentation/deployment_guide.md) — Step-by-step local, Docker, and Streamlit Cloud instructions.
+- 🔬 [**Experiment Tracking**](documentation/experiment_tracking.md) — Tracking architecture, parameter schemas, and reproducible run logs.
+- 🔮 [**Limitations & Future Work**](documentation/limitations_and_future_work.md) — In-depth analysis of dataset boundaries and clinical research roadmap.
+- 📝 [**Student Retrospective**](retrospective.md) — Comprehensive one-page capstone reflection.
+- ⚖️ [**Simulated Data Statement**](simulated_data_statement.md) — Formal declaration clarifying real vs. simulated data.
 
 ---
 
-## Dataset Reference
-> Strack, B., DeShazo, J. P., Gennings, C., Olmo, J. L., Ventura, S., Cios, K. J., & Clore, J. N. (2014).  
-> *Impact of HbA1c Measurement on Hospital Readmission Rates: Analysis of 70,000 Clinical Database Patient Records.*  
-> BioMed Research International, 2014.  
-> UCI Repository Dataset ID: 296
+## ⚕️ Clinical Disclaimer
 
----
-
-## Clinical Disclaimer
-GlucoShield CDSS is an educational and research prototype developed for the FUSE AI-201 capstone. All model outputs represent statistical associations derived from historical inpatient records and must be evaluated alongside bedside clinical findings by licensed healthcare providers. This tool must not be used as the sole basis for clinical decision-making or altering patient care plans.
+> **IMPORTANT CLINICAL NOTICE:**  
+> GlucoShield is an educational and research prototype developed as part of the FUSE AI-201 capstone project. It is **not a certified medical diagnostic device or clinical treatment planning tool**. All model predictions and risk probabilities represent statistical associations derived from historical inpatient encounters (1999–2008) and must be evaluated alongside bedside clinical findings by licensed healthcare professionals. The tool must never be used as the sole basis for clinical decision-making or altering patient care plans.

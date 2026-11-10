@@ -1,7 +1,7 @@
 """
-Whole-Chain System Testing and Robustness Validation.
-Module 5: Stage 8 (Test the Complete Solution)
-Tests input validation, preprocessing robustness, model inference, and output formatting.
+Whole-Chain System Testing and Robustness Validation for GlucoShield CDSS.
+Module 5 & 6: System Testing & Edge-Case Robustness Harness.
+Validates input sanitization, preprocessing imputation, model inference, and output formatting.
 """
 
 import os
@@ -10,130 +10,56 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import joblib
 import numpy as np
 import pandas as pd
-from src.data_pipeline import map_icd9_to_category
+from src.validation import (
+    validate_and_sanitize_patient_input,
+    classify_readmission_risk,
+    CLINICAL_DECISION_THRESHOLD
+)
 
-def run_system_tests():
-    print("--> Initializing System Test Suite (Stage 8)...")
+def predict_patient(raw_input_dict, threshold=CLINICAL_DECISION_THRESHOLD):
+    """
+    End-to-end inference handler with standardized validation and model scoring.
+    """
     preprocessor = joblib.load('models/preprocessor.joblib')
     xgb = joblib.load('models/xgboost_final_model.joblib')
-    feature_metadata = joblib.load('models/feature_metadata.joblib')
 
-    def predict_patient(raw_input_dict, threshold=0.45):
-        """
-        End-to-end inference handler with validation and fallback.
-        """
-        errors = []
-        warnings = []
+    is_valid, errors, warnings, df_clean = validate_and_sanitize_patient_input(raw_input_dict)
 
-        # Validate numeric types & boundaries
-        numeric_rules = {
-            'time_in_hospital': (1, 14, "Length of hospital stay must be between 1 and 14 days."),
-            'num_lab_procedures': (1, 132, "Lab procedure count must be between 1 and 132."),
-            'num_procedures': (0, 10, "Procedure count must be non-negative (0-10)."),
-            'num_medications': (1, 81, "Medication count must be between 1 and 81."),
-            'number_outpatient': (0, 50, "Outpatient visits must be >= 0."),
-            'number_emergency': (0, 50, "Emergency visits must be >= 0."),
-            'number_inpatient': (0, 20, "Inpatient visits must be >= 0."),
-            'number_diagnoses': (1, 16, "Number of diagnoses must be between 1 and 16.")
+    if not is_valid:
+        return {
+            'status': 'REJECTED_VALIDATION_ERROR',
+            'errors': errors,
+            'warnings': warnings,
+            'probability': None,
+            'risk_tier': None,
+            'is_readmitted_predicted': None
         }
 
-        cleaned_dict = {}
+    try:
+        X_trans = preprocessor.transform(df_clean)
+        prob = float(xgb.predict_proba(X_trans)[0, 1])
+        classification = classify_readmission_risk(prob, threshold=threshold)
 
-        # Check types & extreme values
-        for key, (min_v, max_v, msg) in numeric_rules.items():
-            val = raw_input_dict.get(key)
-            if val is None or val == '' or pd.isna(val):
-                cleaned_dict[key] = np.nan
-            else:
-                try:
-                    num_val = float(val)
-                    if num_val < 0:
-                        errors.append(f"Invalid negative value for '{key}': {num_val}. {msg}")
-                    elif num_val > max_v:
-                        warnings.append(f"Extreme value warning: '{key}'={num_val} exceeds standard clinical range (max ~{max_v}).")
-                    cleaned_dict[key] = num_val
-                except (ValueError, TypeError):
-                    errors.append(f"Invalid non-numeric format for '{key}': '{val}'. {msg}")
-
-        if errors:
-            return {
-                'status': 'REJECTED_VALIDATION_ERROR',
-                'errors': errors,
-                'warnings': warnings,
-                'probability': None,
-                'risk_tier': None
-            }
-
-        # Handle Categorical & Map ICD-9
-        diag_1 = raw_input_dict.get('diag_1', '?')
-        diag_2 = raw_input_dict.get('diag_2', '?')
-        diag_3 = raw_input_dict.get('diag_3', '?')
-        cleaned_dict['diag_1_group'] = map_icd9_to_category(diag_1)
-        cleaned_dict['diag_2_group'] = map_icd9_to_category(diag_2)
-        cleaned_dict['diag_3_group'] = map_icd9_to_category(diag_3)
-
-        # Standard categorical features
-        for cat_col in ['race', 'gender', 'age', 'medical_specialty', 'max_glu_serum', 'A1Cresult',
-                        'metformin', 'glipizide', 'glyburide', 'pioglitazone', 'rosiglitazone',
-                        'insulin', 'change', 'diabetesMed', 'admission_type_id',
-                        'discharge_disposition_id', 'admission_source_id']:
-            val = raw_input_dict.get(cat_col, 'Missing')
-            cleaned_dict[cat_col] = str(val) if pd.notna(val) and val != '?' else 'Missing'
-
-        # Feature engineering
-        time_hosp = cleaned_dict.get('time_in_hospital', 4.0)
-        n_lab = cleaned_dict.get('num_lab_procedures', 42.0)
-        n_proc = cleaned_dict.get('num_procedures', 1.0)
-        n_meds = cleaned_dict.get('num_medications', 15.0)
-        n_out = cleaned_dict.get('number_outpatient', 0.0)
-        n_emg = cleaned_dict.get('number_emergency', 0.0)
-        n_inp = cleaned_dict.get('number_inpatient', 0.0)
-
-        cleaned_dict['total_prior_visits'] = n_out + n_emg + n_inp
-        cleaned_dict['procedure_intensity'] = (n_lab + n_proc) / (time_hosp + 1e-5)
-        cleaned_dict['meds_per_day'] = n_meds / (time_hosp + 1e-5)
-
-        # Med changes
-        top_meds_vals = [cleaned_dict.get(m, 'No') for m in ['insulin', 'metformin', 'glipizide', 'glyburide', 'pioglitazone', 'rosiglitazone']]
-        cleaned_dict['num_active_diabetes_meds'] = sum(v in ['Steady', 'Up', 'Down'] for v in top_meds_vals)
-        cleaned_dict['num_dosage_changes'] = sum(v in ['Up', 'Down'] for v in top_meds_vals)
-
-        age_map = {
-            '[0-10)': 5, '[10-20)': 15, '[20-30)': 25, '[30-40)': 35, '[40-50)': 45,
-            '[50-60)': 55, '[60-70)': 65, '[70-80)': 75, '[80-90)': 85, '[90-100)': 95
+        return {
+            'status': 'SUCCESS',
+            'probability': prob,
+            'risk_tier': classification['tier_label'],
+            'is_readmitted_predicted': classification['is_readmission_predicted'],
+            'warnings': warnings,
+            'classification': classification
         }
-        cleaned_dict['age_num'] = age_map.get(cleaned_dict.get('age'), 65)
+    except Exception as e:
+        return {
+            'status': 'PIPELINE_ERROR',
+            'error': str(e),
+            'probability': None,
+            'risk_tier': None,
+            'is_readmitted_predicted': None
+        }
 
-        # Convert to single-row DataFrame
-        df_single = pd.DataFrame([cleaned_dict])
+def run_system_tests():
+    print("--> Initializing System Test Suite (Stage 8 / Module 6)...")
 
-        # Preprocess and score
-        try:
-            X_trans = preprocessor.transform(df_single)
-            prob = float(xgb.predict_proba(X_trans)[0, 1])
-            if prob >= 0.55:
-                risk_tier = "High Risk"
-            elif prob >= 0.40:
-                risk_tier = "Moderate Risk"
-            else:
-                risk_tier = "Low Risk"
-
-            return {
-                'status': 'SUCCESS',
-                'probability': prob,
-                'risk_tier': risk_tier,
-                'is_readmitted_predicted': bool(prob >= threshold),
-                'warnings': warnings
-            }
-        except Exception as e:
-            return {
-                'status': 'PIPELINE_ERROR',
-                'error': str(e),
-                'probability': None,
-                'risk_tier': None
-            }
-
-    # Execute the 5 required Stage 8 test cases
     test_cases = [
         {
             'name': 'Normal, complete input',
@@ -174,7 +100,7 @@ def run_system_tests():
         {
             'name': 'Unexpected category',
             'input': {
-                'race': 'Martian', # Unseen category!
+                'race': 'Martian', # Unseen category
                 'gender': 'Unknown_NonBinary',
                 'age': '[120-130)', # Unseen age bracket
                 'diag_1': 'UNKNOWN_CODE_99999', # Unseen ICD9
@@ -199,7 +125,7 @@ def run_system_tests():
     ]
 
     results_table = []
-    print("\n================== STAGE 8 SYSTEM TEST RESULTS ==================")
+    print("\n================== STAGE 8 / MODULE 6 SYSTEM TEST RESULTS ==================")
     for tc in test_cases:
         res = predict_patient(tc['input'])
         if tc['name'] == 'Normal, complete input':
@@ -231,6 +157,7 @@ def run_system_tests():
         })
 
     df_test_report = pd.DataFrame(results_table)
+    os.makedirs('models', exist_ok=True)
     joblib.dump(df_test_report, 'models/system_test_report.joblib')
     return df_test_report
 
