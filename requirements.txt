@@ -33,3 +33,5 @@ pytest>=8.0.0
 
 # --- Data Acquisition ---
 requests>=2.31.0
+
+plotly>=5.14.0
