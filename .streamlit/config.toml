@@ -1,0 +1,17 @@
+[theme]
+# Base: use "light" so Streamlit doesn't inject dark-mode overrides that clash
+# with our custom CSS theme system.
+base = "light"
+
+primaryColor = "#1E40AF"
+backgroundColor = "#F8FAFC"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#0F172A"
+font = "sans serif"
+
+[server]
+headless = true
+port = 8501
+
+[browser]
+gatherUsageStats = false
