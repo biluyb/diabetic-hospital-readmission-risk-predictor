@@ -244,30 +244,33 @@ if not artifacts_ok:
 def build_risk_gauge(prob: float, dark: bool) -> go.Figure:
     pct = prob * 100
     if prob < 0.40:
-        bar_color = "#16A34A"
+        bar_color = "#16A34A" if not dark else "#22C55E"
     elif prob < 0.50:
-        bar_color = "#D97706"
+        bar_color = "#D97706" if not dark else "#F59E0B"
     else:
-        bar_color = "#DC2626"
+        bar_color = "#DC2626" if not dark else "#EF4444"
 
     fig = go.Figure(
         go.Indicator(
             mode="gauge+number",
             value=pct,
-            number={"suffix": "%", "font": {"size": 32, "color": t["text"], "family": "Segoe UI, sans-serif"}},
+            number={"suffix": "%", "font": {"size": 34, "color": t["text"], "family": "Segoe UI, sans-serif"}},
             gauge={
-                "axis": {"range": [0, 100], "tickcolor": t["text_muted"],
-                         "tickfont": {"color": t["text_muted"], "size": 10}},
-                "bar": {"color": bar_color, "thickness": 0.24},
-                "bgcolor": t["border"],
+                "axis": {
+                    "range": [0, 100],
+                    "tickcolor": t["text_muted"],
+                    "tickfont": {"color": t["text_muted"], "size": 10},
+                },
+                "bar": {"color": bar_color, "thickness": 0.26},
+                "bgcolor": t["surface_subtle"],
                 "borderwidth": 0,
                 "steps": [
-                    {"range": [0, 40], "color": "#F0FDF4" if not dark else "#062817"},
-                    {"range": [40, 50], "color": "#FFFBEB" if not dark else "#381A05"},
-                    {"range": [50, 100], "color": "#FEF2F2" if not dark else "#3B0D0D"},
+                    {"range": [0, 40], "color": t["gauge_step_low"]},
+                    {"range": [40, 50], "color": t["gauge_step_mod"]},
+                    {"range": [50, 100], "color": t["gauge_step_high"]},
                 ],
                 "threshold": {
-                    "line": {"color": "#475569", "width": 2},
+                    "line": {"color": "#64748B", "width": 2},
                     "thickness": 0.75,
                     "value": CLINICAL_DECISION_THRESHOLD * 100,
                 },
@@ -278,6 +281,7 @@ def build_risk_gauge(prob: float, dark: bool) -> go.Figure:
         height=210,
         margin=dict(l=15, r=15, t=25, b=0),
         paper_bgcolor=t["surface"],
+        plot_bgcolor=t["surface"],
         font={"family": "Segoe UI, sans-serif"},
     )
     return fig
@@ -290,7 +294,9 @@ def build_shap_bar_chart(factors: list, dark: bool) -> go.Figure:
         for f in factors
     ]
     values = [f["shap_impact"] for f in factors]
-    colors = ["#DC2626" if v > 0 else "#16A34A" for v in values]
+    pos_color = "#DC2626" if not dark else "#EF4444"
+    neg_color = "#16A34A" if not dark else "#22C55E"
+    colors = [pos_color if v > 0 else neg_color for v in values]
 
     fig = go.Figure(
         go.Bar(
@@ -559,25 +565,24 @@ elif page in ("Patient Risk Assessment", "Demonstration Scenarios"):
         ]
         for col, key, tier, pred, pct, desc, pill in scenario_data:
             with col:
-                st.markdown(
-                    f"""<div class="scenario-card">
-                    <div>
+                with st.container(border=True):
+                    st.markdown(
+                        f"""
                         <span class="scenario-pill {pill}">{tier}</span>
-                        <div style="font-size:1.6rem;font-weight:700;color:{t['text']};margin:4px 0;">{pct}</div>
+                        <div style="font-size:1.75rem;font-weight:700;color:{t['text']};margin:6px 0 2px 0;">{pct}</div>
                         <div style="font-size:0.75rem;color:{t['text_muted']};margin-bottom:8px;">
-                            Prediction: <strong>{pred}</strong>
+                            Model Decision: <strong>{pred}</strong>
                         </div>
-                        <div style="font-size:0.8rem;color:{t['text']};line-height:1.5;">{desc}</div>
-                    </div>
-                    </div>""",
-                    unsafe_allow_html=True,
-                )
-                st.markdown("<br>", unsafe_allow_html=True)
-                if st.button(f"Load & Run {key.split(':')[0]}", key=f"load_{key}", use_container_width=True):
-                    st.session_state["_force_preset"] = key
-                    st.session_state["_auto_submit"] = True
-                    st.session_state.nav_page = "Patient Risk Assessment"
-                    st.rerun()
+                        <div style="font-size:0.82rem;color:{t['text']};line-height:1.55;min-height:58px;margin-bottom:12px;">{desc}</div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    btn_type = "primary" if "High" in key else "secondary"
+                    if st.button(f"Load & Run {key.split(':')[0]}", key=f"load_{key}", use_container_width=True, type=btn_type):
+                        st.session_state["_force_preset"] = key
+                        st.session_state["_auto_submit"] = True
+                        st.session_state.nav_page = "Patient Risk Assessment"
+                        st.rerun()
 
         st.markdown("---")
         st.markdown('<div class="gs-section-title">Run Assessment for Selected Preset</div>', unsafe_allow_html=True)
@@ -600,91 +605,71 @@ elif page in ("Patient Risk Assessment", "Demonstration Scenarios"):
     with st.form("patient_form", clear_on_submit=False):
 
         # Card A: Demographics & Admission
-        st.markdown(
-            f"""<div class="form-card">
-            <div class="form-card-title">A. Patient Demographics & Admission Context</div>
-            """,
-            unsafe_allow_html=True,
-        )
-        da1, da2, da3, da4 = st.columns(4)
-        with da1:
-            age = st.selectbox("Age Bracket", AGE_OPTIONS, index=AGE_OPTIONS.index(dv["age"]))
-        with da2:
-            gender = st.selectbox("Gender", ["Male", "Female"], index=["Male", "Female"].index(dv["gender"]))
-        with da3:
-            race = st.selectbox("Race / Ethnicity", RACE_OPTIONS,
-                                index=RACE_OPTIONS.index(dv["race"] if dv["race"] in RACE_OPTIONS else "Caucasian"))
-        with da4:
-            admission_type = st.selectbox(
-                "Admission Type", ADMISSION_OPTIONS,
-                index=ADMISSION_OPTIONS.index(dv["admission_type"]) if dv["admission_type"] in ADMISSION_OPTIONS else 0,
-            )
-        st.markdown("</div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown('<div class="form-card-title">A. Patient Demographics & Admission Context</div>', unsafe_allow_html=True)
+            da1, da2, da3, da4 = st.columns(4)
+            with da1:
+                age = st.selectbox("Age Bracket", AGE_OPTIONS, index=AGE_OPTIONS.index(dv["age"]))
+            with da2:
+                gender = st.selectbox("Gender", ["Male", "Female"], index=["Male", "Female"].index(dv["gender"]))
+            with da3:
+                race = st.selectbox("Race / Ethnicity", RACE_OPTIONS,
+                                    index=RACE_OPTIONS.index(dv["race"] if dv["race"] in RACE_OPTIONS else "Caucasian"))
+            with da4:
+                admission_type = st.selectbox(
+                    "Admission Type", ADMISSION_OPTIONS,
+                    index=ADMISSION_OPTIONS.index(dv["admission_type"]) if dv["admission_type"] in ADMISSION_OPTIONS else 0,
+                )
 
         # Card B: Inpatient Stay Details
-        st.markdown(
-            f"""<div class="form-card">
-            <div class="form-card-title">B. Hospitalization & Clinical Intensity</div>
-            """,
-            unsafe_allow_html=True,
-        )
-        db1, db2, db3, db4, db5 = st.columns(5)
-        with db1:
-            time_in_hospital = st.number_input("Length of Stay (Days)", 1, 30, int(dv["time_in_hospital"]),
-                                                help="Clinical inpatient range: 1 to 14 days standard.")
-        with db2:
-            num_lab_procedures = st.number_input("Lab Procedures Count", 1, 150, int(dv["num_lab_procedures"]))
-        with db3:
-            num_procedures = st.number_input("Non-Lab Procedures Count", 0, 15, int(dv["num_procedures"]))
-        with db4:
-            num_medications = st.number_input("Medications Count", 1, 100, int(dv["num_medications"]))
-        with db5:
-            number_diagnoses = st.number_input("Diagnoses Count", 1, 16, int(dv["number_diagnoses"]))
-        st.markdown("</div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown('<div class="form-card-title">B. Hospitalization & Clinical Intensity</div>', unsafe_allow_html=True)
+            db1, db2, db3, db4, db5 = st.columns(5)
+            with db1:
+                time_in_hospital = st.number_input("Length of Stay (Days)", 1, 30, int(dv["time_in_hospital"]),
+                                                    help="Clinical inpatient range: 1 to 14 days standard.")
+            with db2:
+                num_lab_procedures = st.number_input("Lab Procedures Count", 1, 150, int(dv["num_lab_procedures"]))
+            with db3:
+                num_procedures = st.number_input("Non-Lab Procedures Count", 0, 15, int(dv["num_procedures"]))
+            with db4:
+                num_medications = st.number_input("Medications Count", 1, 100, int(dv["num_medications"]))
+            with db5:
+                number_diagnoses = st.number_input("Diagnoses Count", 1, 16, int(dv["number_diagnoses"]))
 
         # Card C: Healthcare Utilization History
-        st.markdown(
-            f"""<div class="form-card">
-            <div class="form-card-title">C. Prior Healthcare Utilization (Past 12 Months)</div>
-            """,
-            unsafe_allow_html=True,
-        )
-        dc1, dc2, dc3 = st.columns(3)
-        with dc1:
-            number_inpatient = st.number_input(
-                "Prior Inpatient Stays (Past Year)", 0, 20, int(dv["number_inpatient"]),
-                help="Key predictor: prior inpatient stays carry the highest feature importance."
-            )
-        with dc2:
-            number_emergency = st.number_input("Prior Emergency Visits (Past Year)", 0, 20, int(dv["number_emergency"]))
-        with dc3:
-            number_outpatient = st.number_input("Prior Outpatient Visits", 0, 30, int(dv["number_outpatient"]))
-        st.markdown("</div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown('<div class="form-card-title">C. Prior Healthcare Utilization (Past 12 Months)</div>', unsafe_allow_html=True)
+            dc1, dc2, dc3 = st.columns(3)
+            with dc1:
+                number_inpatient = st.number_input(
+                    "Prior Inpatient Stays (Past Year)", 0, 20, int(dv["number_inpatient"]),
+                    help="Key predictor: prior inpatient stays carry the highest feature importance."
+                )
+            with dc2:
+                number_emergency = st.number_input("Prior Emergency Visits (Past Year)", 0, 20, int(dv["number_emergency"]))
+            with dc3:
+                number_outpatient = st.number_input("Prior Outpatient Visits", 0, 30, int(dv["number_outpatient"]))
 
         # Card D: Diabetes & Regimen
-        st.markdown(
-            f"""<div class="form-card">
-            <div class="form-card-title">D. Diabetes Glycemia & Regimen Management</div>
-            """,
-            unsafe_allow_html=True,
-        )
-        dd1, dd2, dd3, dd4, dd5 = st.columns(5)
-        with dd1:
-            diag_1 = st.text_input("Primary ICD-9 Code", value=str(dv["diag_1"]),
-                                   help="e.g., 250 for Diabetes, 428 for Heart Failure, 414 for Ischemic Heart Disease")
-        with dd2:
-            a1c = st.selectbox("HbA1c Test Result", ["None", "Norm", ">7", ">8"],
-                               index=["None", "Norm", ">7", ">8"].index(dv["a1c"]))
-        with dd3:
-            insulin = st.selectbox("Insulin Dosage Change", ["No", "Steady", "Up", "Down"],
-                                   index=["No", "Steady", "Up", "Down"].index(dv["insulin"]))
-        with dd4:
-            change = st.selectbox("Diabetes Med Change?", ["No", "Ch"],
-                                  index=["No", "Ch"].index(dv["change"]))
-        with dd5:
-            diag_group_preview = map_icd9_to_category(dv["diag_1"])
-            st.text_input("Diagnostic Group (Mapped)", value=diag_group_preview, disabled=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown('<div class="form-card-title">D. Diabetes Glycemia & Regimen Management</div>', unsafe_allow_html=True)
+            dd1, dd2, dd3, dd4, dd5 = st.columns(5)
+            with dd1:
+                diag_1 = st.text_input("Primary ICD-9 Code", value=str(dv["diag_1"]),
+                                       help="e.g., 250 for Diabetes, 428 for Heart Failure, 414 for Ischemic Heart Disease")
+            with dd2:
+                a1c = st.selectbox("HbA1c Test Result", ["None", "Norm", ">7", ">8"],
+                                   index=["None", "Norm", ">7", ">8"].index(dv["a1c"]))
+            with dd3:
+                insulin = st.selectbox("Insulin Dosage Change", ["No", "Steady", "Up", "Down"],
+                                       index=["No", "Steady", "Up", "Down"].index(dv["insulin"]))
+            with dd4:
+                change = st.selectbox("Diabetes Med Change?", ["No", "Ch"],
+                                      index=["No", "Ch"].index(dv["change"]))
+            with dd5:
+                diag_group_preview = map_icd9_to_category(dv["diag_1"])
+                st.text_input("Diagnostic Group (Mapped)", value=diag_group_preview, disabled=True)
 
         submit = st.form_submit_button(
             "Assess Readmission Risk",
@@ -732,65 +717,56 @@ elif page in ("Patient Risk Assessment", "Demonstration Scenarios"):
             r_col, g_col, e_col = st.columns([1.1, 1, 1.4])
 
             with r_col:
-                pred_txt = "POSITIVE · Readmission Likely" if cls["is_readmission_predicted"] else "NEGATIVE · Readmission Unlikely"
-                pred_cls = "pred-positive" if cls["is_readmission_predicted"] else "pred-negative"
-                style_cls = cls["alert_style"]
-                st.markdown(
-                    f"""<div class="{style_cls}">
-                    <div class="risk-panel-label">{cls['tier_label']}</div>
-                    <div class="risk-panel-prob">{prob:.1%}</div>
-                    <span class="risk-panel-pred {pred_cls}">{pred_txt}</span>
-                    <div class="threshold-info">
-                        Operating Cutoff: <b>{CLINICAL_DECISION_THRESHOLD:.2f}</b> &nbsp;|&nbsp;
-                        Probability {'≥' if cls['is_readmission_predicted'] else '<'} Cutoff
-                        &nbsp;→&nbsp; {'POSITIVE' if cls['is_readmission_predicted'] else 'NEGATIVE'}
-                    </div>
-                    <div style="margin-top:10px;font-size:0.8rem;line-height:1.5;">{cls['action_summary']}</div>
-                    </div>""",
-                    unsafe_allow_html=True,
-                )
+                with st.container(border=True):
+                    pred_txt = "POSITIVE · Readmission Likely" if cls["is_readmission_predicted"] else "NEGATIVE · Readmission Unlikely"
+                    pred_cls = "pred-positive" if cls["is_readmission_predicted"] else "pred-negative"
+                    style_cls = cls["alert_style"]
+                    st.markdown(
+                        f"""<div class="{style_cls}">
+                        <div class="risk-panel-label">{cls['tier_label']}</div>
+                        <div class="risk-panel-prob">{prob:.1%}</div>
+                        <span class="risk-panel-pred {pred_cls}">{pred_txt}</span>
+                        <div class="threshold-info">
+                            Operating Cutoff: <b>{CLINICAL_DECISION_THRESHOLD:.2f}</b> &nbsp;|&nbsp;
+                            Probability {'≥' if cls['is_readmission_predicted'] else '<'} Cutoff
+                            &nbsp;→&nbsp; {'POSITIVE' if cls['is_readmission_predicted'] else 'NEGATIVE'}
+                        </div>
+                        <div style="margin-top:10px;font-size:0.8rem;line-height:1.5;">{cls['action_summary']}</div>
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
 
             with g_col:
-                st.markdown(
-                    f"""<div class="form-card" style="height:100%;margin:0;padding:12px;">
-                    <div class="form-card-title" style="text-align:center;">Risk Probability Gauge</div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-                st.plotly_chart(
-                    build_risk_gauge(prob, st.session_state.dark_mode),
-                    use_container_width=True,
-                    config={"displayModeBar": False},
-                )
-                st.markdown(
-                    f"""<div style="text-align:center;font-size:0.72rem;color:{t['text_muted']};">
-                    Low (&lt;40%) &nbsp;|&nbsp; Borderline (40–50%) &nbsp;|&nbsp; High (≥50%)<br>
-                    Dashed marker indicates decision cutoff ({CLINICAL_DECISION_THRESHOLD:.2f})
-                    </div>
-                    </div>""",
-                    unsafe_allow_html=True,
-                )
+                with st.container(border=True):
+                    st.markdown(f'<div class="form-card-title" style="text-align:center;">Risk Probability Gauge</div>', unsafe_allow_html=True)
+                    st.plotly_chart(
+                        build_risk_gauge(prob, st.session_state.dark_mode),
+                        use_container_width=True,
+                        config={"displayModeBar": False},
+                    )
+                    st.markdown(
+                        f"""<div style="text-align:center;font-size:0.72rem;color:{t['text_muted']};margin-top:2px;">
+                        Low (&lt;40%) &nbsp;|&nbsp; Borderline (40–50%) &nbsp;|&nbsp; High (≥50%)<br>
+                        Marker indicates decision cutoff ({CLINICAL_DECISION_THRESHOLD:.2f})
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
 
             with e_col:
-                st.markdown(
-                    f"""<div class="form-card" style="height:100%;margin:0;padding:12px;">
-                    <div class="form-card-title">TreeSHAP Factor Attribution</div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-                st.caption("Top bedside factors driving this patient's prediction:")
-                try:
-                    expl = explainer.explain_patient(X_trans, top_k=7)
-                    factors = expl["top_factors"]
-                    if factors:
-                        st.plotly_chart(
-                            build_shap_bar_chart(factors, st.session_state.dark_mode),
-                            use_container_width=True,
-                            config={"displayModeBar": False},
-                        )
-                except Exception as ex:
-                    st.warning(f"TreeSHAP attribution temporarily unavailable: {ex}")
-                st.markdown("</div>", unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown(f'<div class="form-card-title">TreeSHAP Factor Attribution</div>', unsafe_allow_html=True)
+                    st.caption("Top bedside factors driving this patient's prediction:")
+                    try:
+                        expl = explainer.explain_patient(X_trans, top_k=7)
+                        factors = expl["top_factors"]
+                        if factors:
+                            st.plotly_chart(
+                                build_shap_bar_chart(factors, st.session_state.dark_mode),
+                                use_container_width=True,
+                                config={"displayModeBar": False},
+                            )
+                    except Exception as ex:
+                        st.warning(f"TreeSHAP attribution temporarily unavailable: {ex}")
 
             # Clinical Discharge Protocol Section
             st.markdown("---")
@@ -798,51 +774,56 @@ elif page in ("Patient Risk Assessment", "Demonstration Scenarios"):
 
             cp1, cp2 = st.columns([1.6, 1])
             with cp1:
-                st.caption(f"Interventions calibrated to risk classification (Decision Threshold = {CLINICAL_DECISION_THRESHOLD:.2f}):")
-                if cls["is_readmission_predicted"]:
-                    st.markdown("""
+                with st.container(border=True):
+                    st.markdown(f'<div class="form-card-title">Targeted Clinical Protocol Checklist</div>', unsafe_allow_html=True)
+                    st.caption(f"Interventions calibrated to risk classification (Decision Threshold = {CLINICAL_DECISION_THRESHOLD:.2f}):")
+                    if cls["is_readmission_predicted"]:
+                        st.markdown("""
 - [ ] **Home Health Nursing Referral:** Coordinate visiting nurse home visit within 48–72 hours post-discharge for vital sign checks and insulin coaching.
 - [ ] **Pharmacist Medication Reconciliation:** Conduct comprehensive review of discharge prescriptions, insulin dosing, and hypoglycemia safeguards.
 - [ ] **Accelerated Outpatient Follow-up:** Schedule clinic appointment with primary care physician or diabetes specialist within 7 days.
 - [ ] **Bedside Patient Coaching:** 30-minute review on hypoglycemia recognition, diet stabilization, and glucometer coaching prior to discharge.
 - [ ] **Case Management Outreach:** Assign care coordinator for telephone check-in at 48 hours post-discharge.
-                    """)
-                else:
-                    st.markdown("""
+                        """)
+                    else:
+                        st.markdown("""
 - [ ] **Standard Discharge Education:** Provide diabetes nutrition guidelines and routine medication adherence pamphlets.
 - [ ] **Routine Outpatient Follow-up:** Schedule standard clinic follow-up within 14–30 days.
 - [ ] **Prescription Verification:** Confirm patient has active 30-day medication supply and pharmacy access.
-                    """)
+                        """)
 
             with cp2:
-                diag_grp = map_icd9_to_category(diag_1)
-                st.markdown(
-                    f"""<div class="gs-info-box">
-                    <h4>Encounter Clinical Summary</h4>
-                    <b>Primary Diagnosis Group:</b> {diag_grp}<br>
-                    <b>Total Prior Hospital Encounters:</b> {int(number_inpatient + number_emergency + number_outpatient)}<br>
-                    <b>Length of Stay:</b> {time_in_hospital} days<br>
-                    <b>Total Medications:</b> {num_medications}<br>
-                    <b>Insulin Regimen Change:</b> {insulin}<br>
-                    <b>HbA1c Test:</b> {a1c}
-                    </div>""",
-                    unsafe_allow_html=True,
-                )
+                with st.container(border=True):
+                    diag_grp = map_icd9_to_category(diag_1)
+                    st.markdown(
+                        f"""
+                        <div class="form-card-title">Encounter Clinical Summary</div>
+                        <div style="font-size:0.82rem;line-height:1.7;color:{t['text']};margin-bottom:12px;">
+                        <b>Primary Diagnosis Group:</b> {diag_grp}<br>
+                        <b>Total Prior Hospital Encounters:</b> {int(number_inpatient + number_emergency + number_outpatient)}<br>
+                        <b>Length of Stay:</b> {time_in_hospital} days<br>
+                        <b>Total Medications:</b> {num_medications}<br>
+                        <b>Insulin Regimen Change:</b> {insulin}<br>
+                        <b>HbA1c Test:</b> {a1c}
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
-                export_data = {
-                    "Assessment Timestamp": [datetime.datetime.now().isoformat()],
-                    "Risk Probability": [f"{prob:.4f}"],
-                    "Risk Tier": [cls["tier_label"]],
-                    "Model Prediction": ["POSITIVE" if cls["is_readmission_predicted"] else "NEGATIVE"],
-                    "Decision Cutoff": [CLINICAL_DECISION_THRESHOLD],
-                    "Age Bracket": [age], "Gender": [gender], "Race": [race],
-                    "Length of Stay": [time_in_hospital],
-                    "Prior Inpatient Admissions": [number_inpatient],
-                    "Primary ICD-9": [diag_1], "Diagnostic Group": [diag_grp],
-                    "HbA1c": [a1c], "Insulin Change": [insulin],
-                    "Notice": ["Academic Research Prototype — Not for autonomous diagnostic use"],
-                }
-                csv_bytes = pd.DataFrame(export_data).to_csv(index=False).encode()
+                    export_data = {
+                        "Assessment Timestamp": [datetime.datetime.now().isoformat()],
+                        "Risk Probability": [f"{prob:.4f}"],
+                        "Risk Tier": [cls["tier_label"]],
+                        "Model Prediction": ["POSITIVE" if cls["is_readmission_predicted"] else "NEGATIVE"],
+                        "Decision Cutoff": [CLINICAL_DECISION_THRESHOLD],
+                        "Age Bracket": [age], "Gender": [gender], "Race": [race],
+                        "Length of Stay": [time_in_hospital],
+                        "Prior Inpatient Admissions": [number_inpatient],
+                        "Primary ICD-9": [diag_1], "Diagnostic Group": [diag_grp],
+                        "HbA1c": [a1c], "Insulin Change": [insulin],
+                        "Notice": ["Academic Research Prototype — Not for autonomous diagnostic use"],
+                    }
+                    csv_bytes = pd.DataFrame(export_data).to_csv(index=False).encode()
                 st.download_button(
                     "Download Assessment Summary (CSV)",
                     data=csv_bytes,
@@ -1119,8 +1100,8 @@ elif page == "Monitoring & Drift Detection":
         paper_bgcolor=t["surface"],
         plot_bgcolor=t["surface"],
         font={"color": t["text"], "family": "Segoe UI, sans-serif"},
-        yaxis=dict(gridcolor=t["border"]),
-        xaxis=dict(gridcolor=t["border"]),
+        yaxis=dict(gridcolor=t["border"], tickfont={"color": t["text_muted"], "size": 10.5}),
+        xaxis=dict(gridcolor=t["border"], tickfont={"color": t["text"], "size": 10.5}),
         margin=dict(t=50, b=10),
         height=310,
     )
