@@ -1,7 +1,7 @@
 """
 GlucoShield CDSS — Clinical Decision Support System
-Diabetes Hospital Readmission Risk Predictor
-FUSE AI-201 Capstone (Group 04) | Research Prototype
+Diabetes 30-Day Hospital Readmission Risk Predictor
+FUSE AI-201 Capstone (Group 04) | Academic Research Prototype
 """
 
 import os
@@ -25,7 +25,7 @@ from src.validation import (
 from ui.theme import get_theme, inject_global_css
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PAGE CONFIG
+# PAGE CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="GlucoShield CDSS",
@@ -34,7 +34,7 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SESSION STATE DEFAULTS
+# SESSION STATE INITIALIZATION
 # ─────────────────────────────────────────────────────────────────────────────
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
@@ -52,7 +52,7 @@ t = get_theme(st.session_state.dark_mode)
 st.markdown(inject_global_css(t), unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# LOAD ARTIFACTS (cached)
+# LOAD CACHED MODEL ARTIFACTS
 # ─────────────────────────────────────────────────────────────────────────────
 @st.cache_resource(show_spinner="Loading clinical model artifacts...")
 def load_artifacts():
@@ -70,140 +70,7 @@ except Exception as _e:
     _load_err = str(_e)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SIDEBAR NAVIGATION & CONTROLS
-# ─────────────────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown(
-        f"""
-        <div style="display:flex;align-items:center;gap:12px;padding:6px 0 16px 0;
-                    border-bottom:1px solid {t['border']};">
-            <div class="gs-brand-mark">GS</div>
-            <div>
-                <div style="font-weight:700;font-size:1.02rem;color:{t['text']};">GlucoShield CDSS</div>
-                <div style="font-size:0.75rem;color:{t['text_muted']};">Inpatient Risk Stratification</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Theme toggle
-    st.markdown(
-        f"<div style='font-size:0.72rem;font-weight:600;text-transform:uppercase;"
-        f"letter-spacing:.05em;color:{t['text_muted']};margin:14px 0 6px 0;'>Theme</div>",
-        unsafe_allow_html=True,
-    )
-    theme_choice = st.radio(
-        "Theme Selector",
-        ["Light", "Dark"],
-        index=1 if st.session_state.dark_mode else 0,
-        label_visibility="collapsed",
-        horizontal=True,
-    )
-    new_dark = theme_choice == "Dark"
-    if new_dark != st.session_state.dark_mode:
-        st.session_state.dark_mode = new_dark
-        st.rerun()
-
-    # Navigation pages
-    st.markdown(
-        f"<div style='font-size:0.72rem;font-weight:600;text-transform:uppercase;"
-        f"letter-spacing:.05em;color:{t['text_muted']};margin:16px 0 6px 0;'>Navigation</div>",
-        unsafe_allow_html=True,
-    )
-    NAV_PAGES = [
-        "Clinical Dashboard",
-        "Patient Risk Assessment",
-        "Demonstration Scenarios",
-        "Model Performance",
-        "System Testing & Validation",
-        "Monitoring & Drift Detection",
-        "Clinical Governance",
-        "About GlucoShield",
-    ]
-    for label in NAV_PAGES:
-        active = st.session_state.nav_page == label
-        btn_type = "primary" if active else "secondary"
-        if st.button(
-            label,
-            key=f"nav_{label}",
-            use_container_width=True,
-            type=btn_type,
-        ):
-            st.session_state.nav_page = label
-            st.rerun()
-
-    # Quick demo presets
-    st.markdown(
-        f"<div style='font-size:0.72rem;font-weight:600;text-transform:uppercase;"
-        f"letter-spacing:.05em;color:{t['text_muted']};margin:18px 0 6px 0;'>Demonstration Presets</div>",
-        unsafe_allow_html=True,
-    )
-    preset_choice = st.selectbox(
-        "Presets",
-        [
-            "Custom Patient Input",
-            "Scenario 1: Low Risk (Negative)",
-            "Scenario 2: High Risk (Positive)",
-            "Scenario 3: Borderline (Cutoff 0.45)",
-        ],
-        label_visibility="collapsed",
-    )
-
-    st.markdown("---")
-    st.markdown(
-        f"<div style='font-size:0.74rem;color:{t['text_muted']};line-height:1.6;'>"
-        f"<b>FUSE AI-201</b> · Module 6 Capstone<br>"
-        f"Group 04 · Academic Prototype<br>"
-        f"Model: XGBoost · Cutoff: {CLINICAL_DECISION_THRESHOLD:.2f}</div>",
-        unsafe_allow_html=True,
-    )
-
-page = st.session_state.nav_page
-
-# ─────────────────────────────────────────────────────────────────────────────
-# GLOBAL HEADER
-# ─────────────────────────────────────────────────────────────────────────────
-now_str = datetime.datetime.now().strftime("%d %b %Y, %H:%M")
-st.markdown(
-    f"""
-    <div class="gs-header">
-        <div class="gs-brand-mark">GS</div>
-        <div class="gs-title">
-            <h1>GlucoShield Clinical Decision Support System</h1>
-            <p>Diabetes 30-Day Hospital Readmission Risk Stratification &nbsp;·&nbsp; {now_str}</p>
-        </div>
-        <span class="gs-badge gs-badge-sys">Decision Support</span>
-        <span class="gs-badge gs-badge-proto">Academic Prototype</span>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-# Professional disclaimer banner
-st.markdown(
-    f"""
-    <div class="gs-disclaimer">
-        <strong>Notice: Clinical Decision Support Prototype.</strong>
-        GlucoShield is an educational and research prototype developed for FUSE AI-201.
-        Predictions are statistical probabilities based on historical inpatient records (1999–2008)
-        and are intended strictly to support, not replace, clinical evaluation by licensed practitioners.
-        No personal health information (PHI) is retained or transmitted.
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-if not artifacts_ok:
-    st.error(
-        f"Model artifacts could not be loaded: {_load_err}\n\n"
-        "Please ensure `models/preprocessor.joblib`, `models/xgboost_final_model.joblib`, "
-        "and `models/feature_names.joblib` exist."
-    )
-    st.stop()
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PRESET VALUES CONFIGURATION
+# PRESET VALUES DEFINITION
 # ─────────────────────────────────────────────────────────────────────────────
 PRESETS = {
     "Scenario 1: Low Risk (Negative)": dict(
@@ -235,18 +102,146 @@ DEFAULT_VALS = dict(
     number_inpatient=0, number_diagnoses=7, diag_1="250.00",
     a1c="None", insulin="Steady", change="No", admission_type="1 (Emergency)",
 )
-dv = PRESETS.get(preset_choice, DEFAULT_VALS)
 
 ADMISSION_OPTIONS = ["1 (Emergency)", "2 (Urgent)", "3 (Elective)", "7 (Trauma / Other)"]
 AGE_OPTIONS = ["[0-10)", "[10-20)", "[20-30)", "[30-40)", "[40-50)",
                "[50-60)", "[60-70)", "[70-80)", "[80-90)", "[90-100)"]
 RACE_OPTIONS = ["Caucasian", "AfricanAmerican", "Hispanic", "Asian", "Other"]
 
+# ─────────────────────────────────────────────────────────────────────────────
+# SIDEBAR NAVIGATION
+# ─────────────────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown(
+        f"""
+        <div style="display:flex;align-items:center;gap:12px;padding:4px 0 16px 0;
+                    border-bottom:1px solid {t['border']};">
+            <div class="gs-brand-mark">GS</div>
+            <div>
+                <div style="font-weight:700;font-size:1.02rem;color:{t['text']};">GlucoShield CDSS</div>
+                <div style="font-size:0.74rem;color:{t['text_muted']};">Inpatient Risk Stratification</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Theme selector
+    st.markdown(f"<div class='nav-category'>THEME</div>", unsafe_allow_html=True)
+    theme_choice = st.radio(
+        "Display Theme",
+        ["Light Mode", "Dark Mode"],
+        index=1 if st.session_state.dark_mode else 0,
+        label_visibility="collapsed",
+        horizontal=True,
+    )
+    new_dark = theme_choice == "Dark Mode"
+    if new_dark != st.session_state.dark_mode:
+        st.session_state.dark_mode = new_dark
+        st.rerun()
+
+    # Category 1: Clinical Workflow
+    st.markdown(f"<div class='nav-category'>CLINICAL WORKFLOW</div>", unsafe_allow_html=True)
+    CLINICAL_PAGES = [
+        "Clinical Dashboard",
+        "Patient Risk Assessment",
+        "Demonstration Scenarios",
+    ]
+    for label in CLINICAL_PAGES:
+        active = st.session_state.nav_page == label
+        btn_type = "primary" if active else "secondary"
+        if st.button(label, key=f"nav_{label}", use_container_width=True, type=btn_type):
+            st.session_state.nav_page = label
+            st.rerun()
+
+    # Category 2: System & Governance
+    st.markdown(f"<div class='nav-category'>SYSTEM & GOVERNANCE</div>", unsafe_allow_html=True)
+    SYSTEM_PAGES = [
+        "Model Performance",
+        "System Testing & Validation",
+        "Monitoring & Drift Detection",
+        "Clinical Governance",
+        "About GlucoShield",
+    ]
+    for label in SYSTEM_PAGES:
+        active = st.session_state.nav_page == label
+        btn_type = "primary" if active else "secondary"
+        if st.button(label, key=f"nav_{label}", use_container_width=True, type=btn_type):
+            st.session_state.nav_page = label
+            st.rerun()
+
+    # Quick demo preset selector in sidebar
+    st.markdown(f"<div class='nav-category'>QUICK PRESETS</div>", unsafe_allow_html=True)
+    preset_choice = st.selectbox(
+        "Demonstration Presets",
+        [
+            "Custom Patient Input",
+            "Scenario 1: Low Risk (Negative)",
+            "Scenario 2: High Risk (Positive)",
+            "Scenario 3: Borderline (Cutoff 0.45)",
+        ],
+        label_visibility="collapsed",
+    )
+
+    st.markdown("---")
+    st.markdown(
+        f"""
+        <div style="font-size:0.72rem;color:{t['text_muted']};line-height:1.6;padding:0 4px;">
+            <b>FUSE AI-201 Capstone</b><br>
+            Group 04 · YEEAP Cohort<br>
+            Model: XGBoost · Cutoff: <b>{CLINICAL_DECISION_THRESHOLD:.2f}</b><br>
+            ROC-AUC: <b>0.6465</b> · Recall: <b>65.71%</b>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+page = st.session_state.nav_page
 
 # ─────────────────────────────────────────────────────────────────────────────
-# VISUALIZATION HELPERS (Plotly)
+# GLOBAL HEADER & NOTICE BANNER
 # ─────────────────────────────────────────────────────────────────────────────
-def risk_gauge(prob: float, dark: bool) -> go.Figure:
+now_str = datetime.datetime.now().strftime("%d %b %Y, %H:%M")
+st.markdown(
+    f"""
+    <div class="gs-header">
+        <div class="gs-brand-mark">GS</div>
+        <div class="gs-title">
+            <h1>GlucoShield Clinical Decision Support System</h1>
+            <p>Diabetes 30-Day Hospital Readmission Risk Stratification &nbsp;·&nbsp; {now_str}</p>
+        </div>
+        <span class="gs-badge gs-badge-sys">Decision Support</span>
+        <span class="gs-badge gs-badge-proto">Academic Prototype</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    f"""
+    <div class="gs-disclaimer">
+        <strong>Notice: Clinical Decision Support Prototype.</strong>
+        GlucoShield is an academic research prototype developed for FUSE AI-201.
+        Outputs represent statistical probabilities derived from historical inpatient records (1999–2008)
+        and are intended to assist bedside clinical teams, not replace professional judgment.
+        No protected health information (PHI) is collected or retained.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+if not artifacts_ok:
+    st.error(
+        f"Model artifacts could not be loaded: {_load_err}\n\n"
+        "Please ensure `models/preprocessor.joblib`, `models/xgboost_final_model.joblib`, "
+        "and `models/feature_names.joblib` exist."
+    )
+    st.stop()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PLOTLY CHART HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+def build_risk_gauge(prob: float, dark: bool) -> go.Figure:
     pct = prob * 100
     if prob < 0.40:
         bar_color = "#16A34A"
@@ -259,11 +254,11 @@ def risk_gauge(prob: float, dark: bool) -> go.Figure:
         go.Indicator(
             mode="gauge+number",
             value=pct,
-            number={"suffix": "%", "font": {"size": 34, "color": t["text"], "family": "Segoe UI, sans-serif"}},
+            number={"suffix": "%", "font": {"size": 32, "color": t["text"], "family": "Segoe UI, sans-serif"}},
             gauge={
                 "axis": {"range": [0, 100], "tickcolor": t["text_muted"],
-                         "tickfont": {"color": t["text_muted"], "size": 11}},
-                "bar": {"color": bar_color, "thickness": 0.25},
+                         "tickfont": {"color": t["text_muted"], "size": 10}},
+                "bar": {"color": bar_color, "thickness": 0.24},
                 "bgcolor": t["border"],
                 "borderwidth": 0,
                 "steps": [
@@ -273,22 +268,22 @@ def risk_gauge(prob: float, dark: bool) -> go.Figure:
                 ],
                 "threshold": {
                     "line": {"color": "#475569", "width": 2},
-                    "thickness": 0.8,
+                    "thickness": 0.75,
                     "value": CLINICAL_DECISION_THRESHOLD * 100,
                 },
             },
         )
     )
     fig.update_layout(
-        height=220,
-        margin=dict(l=15, r=15, t=30, b=0),
+        height=210,
+        margin=dict(l=15, r=15, t=25, b=0),
         paper_bgcolor=t["surface"],
         font={"family": "Segoe UI, sans-serif"},
     )
     return fig
 
 
-def shap_bar_chart(factors: list, dark: bool) -> go.Figure:
+def build_shap_bar_chart(factors: list, dark: bool) -> go.Figure:
     names = [
         f["feature"].replace("num__", "").replace("cat__", "")
         .replace("remainder__", "").replace("_", " ").title()
@@ -305,26 +300,26 @@ def shap_bar_chart(factors: list, dark: bool) -> go.Figure:
             marker_color=colors,
             text=[f"{v:+.4f}" for v in values],
             textposition="outside",
-            textfont={"size": 11, "color": t["text"]},
+            textfont={"size": 10.5, "color": t["text"]},
         )
     )
     fig.update_layout(
-        height=max(250, len(factors) * 40),
-        margin=dict(l=10, r=50, t=10, b=10),
+        height=max(220, len(factors) * 36),
+        margin=dict(l=10, r=45, t=10, b=10),
         paper_bgcolor=t["surface"],
         plot_bgcolor=t["surface"],
         xaxis=dict(
             title=dict(
                 text="SHAP Value (Impact on Log-Odds)",
-                font={"color": t["text_muted"], "size": 11},
+                font={"color": t["text_muted"], "size": 10.5},
             ),
             zeroline=True,
             zerolinecolor=t["border"],
             gridcolor=t["border"],
-            tickfont={"color": t["text_muted"], "size": 11},
+            tickfont={"color": t["text_muted"], "size": 10},
         ),
         yaxis=dict(
-            tickfont={"color": t["text"], "size": 11},
+            tickfont={"color": t["text"], "size": 10.5},
             autorange="reversed",
         ),
         font={"family": "Segoe UI, sans-serif"},
@@ -333,7 +328,7 @@ def shap_bar_chart(factors: list, dark: bool) -> go.Figure:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# INFERENCE RUNNER
+# INFERENCE PIPELINE RUNNER
 # ─────────────────────────────────────────────────────────────────────────────
 def run_prediction(raw_patient: dict):
     is_valid, errors, warnings, df_clean = validate_and_sanitize_patient_input(raw_patient)
@@ -381,75 +376,115 @@ def build_raw_patient(age, gender, race, admission_type, time_in_hospital,
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# PAGE: CLINICAL DASHBOARD
+# PAGE: CLINICAL DASHBOARD (Overview)
 # ═════════════════════════════════════════════════════════════════════════════
 if page == "Clinical Dashboard":
-    st.markdown('<div class="gs-section-title">System Overview</div>', unsafe_allow_html=True)
+    st.markdown('<div class="gs-section-title">Clinical System Overview</div>', unsafe_allow_html=True)
 
-    kpis = [
-        ("XGBoost", "Primary Model", "Calibrated gradient boosting"),
-        ("0.6465", "Holdout ROC-AUC", "Holdout test set (n=13,998)"),
-        ("65.71%", "Sensitivity / Recall", "Evaluated at 0.45 cutoff"),
-        ("12.48%", "Precision", "Low base-rate context (8.9%)"),
-        ("0.45", "Operating Cutoff", "Tuned for high sensitivity"),
-        ("17 / 17", "Automated Tests", "Unit and integration tests"),
-    ]
-    cols = st.columns(len(kpis))
-    for col, (val, label, sub) in zip(cols, kpis):
-        col.markdown(
+    # 4 Primary KPI Cards
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        st.markdown(
             f"""<div class="kpi-card">
-                <div class="kpi-label">{label}</div>
-                <div class="kpi-value">{val}</div>
-                <div class="kpi-desc">{sub}</div>
+            <div class="kpi-label">Holdout ROC-AUC</div>
+            <div class="kpi-value">0.6465</div>
+            <div class="kpi-desc">20% Holdout Test Set (n=13,998)</div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+    with k2:
+        st.markdown(
+            f"""<div class="kpi-card">
+            <div class="kpi-label">Sensitivity / Recall</div>
+            <div class="kpi-value" style="color:#16A34A;">65.71%</div>
+            <div class="kpi-desc">Evaluated at 0.45 Cutoff (826 caught)</div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+    with k3:
+        st.markdown(
+            f"""<div class="kpi-card">
+            <div class="kpi-label">Operating Cutoff</div>
+            <div class="kpi-value" style="color:#2563EB;">0.45</div>
+            <div class="kpi-desc">Calibrated for High Sensitivity</div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+    with k4:
+        st.markdown(
+            f"""<div class="kpi-card">
+            <div class="kpi-label">Automated Tests</div>
+            <div class="kpi-value" style="color:#16A34A;">17 / 17</div>
+            <div class="kpi-desc">pytest Suite · 100% Passing</div>
             </div>""",
             unsafe_allow_html=True,
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    col_left, col_right = st.columns([1.5, 1])
-
-    with col_left:
-        st.markdown('<div class="gs-section-title">Project Summary</div>', unsafe_allow_html=True)
+    # Secondary Architecture & Volume Cards
+    m1, m2 = st.columns(2)
+    with m1:
         st.markdown(
-            f"""<div class="gs-info-box">
-            <h4>GlucoShield Inpatient Risk Stratification</h4>
-            GlucoShield analyzes inpatient encounter features from <b>101,766 hospital admissions</b>
-            (130 US hospitals, 1999–2008) to estimate the probability of <b>30-day unplanned readmission</b>
-            among diabetic patients.<br><br>
-            The system provides discharge coordinators and care teams with timely risk categorization,
-            interpretable TreeSHAP factor attributions, and targeted transition-of-care recommendations.
-            <br><br>
-            <strong>Curriculum:</strong> FUSE AI-201 · Module 6 Capstone<br>
-            <strong>Project Group:</strong> Group 04<br>
-            <strong>Data Source:</strong> UCI 130-US Hospitals (De-identified, HIPAA Safe Harbor)
+            f"""<div class="kpi-card" style="border-top-color:#0D9488;">
+            <div class="kpi-label">Selected Model Engine</div>
+            <div class="kpi-value" style="font-size:1.25rem;">XGBoost Classifier</div>
+            <div class="kpi-desc">L1/L2 Regularized · Sub-15ms Latency · Native TreeSHAP Support</div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+    with m2:
+        st.markdown(
+            f"""<div class="kpi-card" style="border-top-color:#6366F1;">
+            <div class="kpi-label">Clinical Dataset Scope</div>
+            <div class="kpi-value" style="font-size:1.25rem;">101,766 Inpatient Records</div>
+            <div class="kpi-desc">130 US Hospitals (1999–2008) · 69,990 Unique Patient Cohort</div>
             </div>""",
             unsafe_allow_html=True,
         )
 
-        st.markdown('<div class="gs-section-title">System Architecture</div>', unsafe_allow_html=True)
-        arch_data = {
-            "Pipeline Stage": ["Data Ingestion & Cleaning", "Feature Engineering", "Primary Model", "Interpretability", "Decision Boundary"],
-            "Specification": [
-                "Scikit-learn ColumnTransformer (Median/Mode imputation, OneHotEncoder)",
-                "13 engineered clinical indicators (Utilization intensity, glycemic shifts)",
-                "XGBoost Classifier (n_estimators=300, max_depth=4, subsample=0.8)",
-                "TreeSHAP ClinicalExplainer (Local factor impact and global baselines)",
-                "Cutoff = 0.45 (Prioritizes sensitivity >= 65% for discharge safety)"
-            ],
-        }
-        st.dataframe(pd.DataFrame(arch_data), hide_index=True, use_container_width=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    with col_right:
-        st.markdown('<div class="gs-section-title">Data Drift & Quality Status</div>', unsafe_allow_html=True)
+    # Main Dashboard Body (Left: Summary & Actions | Right: Quality & History)
+    col_left, col_right = st.columns([1.5, 1])
+
+    with col_left:
         st.markdown(
             f"""<div class="gs-info-box">
-            <h4>Monitoring Alert Status</h4>
-            <span style="color:#DC2626;font-weight:600;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.04em;">
+            <h4>GlucoShield Inpatient Risk Stratification</h4>
+            GlucoShield analyzes inpatient encounter features from <b>101,766 hospital admissions</b>
+            across 130 US hospitals to estimate the probability of <b>30-day unplanned readmission</b>
+            among diabetic patients.<br><br>
+            The system provides discharge coordinators and attending physicians with timely risk categorization,
+            interpretable TreeSHAP factor attributions, and targeted transition-of-care recommendations.
+            <br><br>
+            <strong>Curriculum:</strong> FUSE AI-201 · Module 6 Capstone &nbsp;|&nbsp;
+            <strong>Project Group:</strong> Group 04 &nbsp;|&nbsp;
+            <strong>Data Source:</strong> UCI 130-US Hospitals (HIPAA Safe Harbor De-identified)
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown('<div class="gs-section-title">Quick Actions</div>', unsafe_allow_html=True)
+        qa1, qa2 = st.columns(2)
+        with qa1:
+            if st.button("Open Patient Risk Assessment", use_container_width=True, type="primary"):
+                st.session_state.nav_page = "Patient Risk Assessment"
+                st.rerun()
+        with qa2:
+            if st.button("View Demonstration Scenarios", use_container_width=True):
+                st.session_state.nav_page = "Demonstration Scenarios"
+                st.rerun()
+
+    with col_right:
+        st.markdown(
+            f"""<div class="gs-info-box">
+            <h4>MLOps Drift & Quality Status</h4>
+            <span style="color:#DC2626;font-weight:600;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.04em;">
                 High Drift Detected (Simulated Batch)
             </span><br><br>
-            Simulated Month 2 inpatient volume shows significant distributional shift in 3 critical features:<br><br>
-            <table style="width:100%;font-size:0.83rem;border-collapse:collapse;">
+            Simulated Month 2 inpatient volume shows distributional shift in 3 critical predictors:<br><br>
+            <table style="width:100%;font-size:0.8rem;border-collapse:collapse;">
             <tr style="border-bottom:1px solid {t['border']};">
                 <td style="padding:4px 0;"><b>number_inpatient</b></td>
                 <td style="text-align:right;color:#DC2626;padding:4px 0;">PSI = 0.385</td>
@@ -463,24 +498,13 @@ if page == "Clinical Dashboard":
                 <td style="text-align:right;color:#DC2626;padding:4px 0;">PSI = 0.260</td>
             </tr>
             </table><br>
-            <span style="font-size:0.75rem;color:{t['text_muted']};">
-                Note: Monitoring batches are algorithmically generated for educational review.
-                PSI alert threshold is 0.25. Retraining evaluation recommended.
+            <span style="font-size:0.74rem;color:{t['text_muted']};">
+                Notice: All monitoring batches are algorithmically simulated for educational demonstration.
+                PSI alert threshold is 0.25. Retraining evaluation triggered.
             </span>
             </div>""",
             unsafe_allow_html=True,
         )
-
-        st.markdown('<div class="gs-section-title">Quick Actions</div>', unsafe_allow_html=True)
-        if st.button("Open Patient Risk Assessment", use_container_width=True, type="primary"):
-            st.session_state.nav_page = "Patient Risk Assessment"
-            st.rerun()
-        if st.button("View Demonstration Scenarios", use_container_width=True):
-            st.session_state.nav_page = "Demonstration Scenarios"
-            st.rerun()
-        if st.button("Inspect Model Evaluation", use_container_width=True):
-            st.session_state.nav_page = "Model Performance"
-            st.rerun()
 
         if st.session_state.assessment_history:
             st.markdown(
@@ -496,7 +520,7 @@ if page == "Clinical Dashboard":
                 muted = t["text_muted"]
                 st.markdown(
                     f"<div style='padding:6px 10px;border-left:3px solid {color};"
-                    f"margin-bottom:6px;font-size:0.8rem;background:{t['surface']};border-radius:4px;'>"
+                    f"margin-bottom:6px;font-size:0.8rem;background:{t['surface']};border-radius:4px;border:1px solid {t['border']};'>"
                     f"<b>{entry['prob']:.1%}</b> · {entry['tier']}<br>"
                     f"<span style='color:{muted};font-size:0.72rem;'>Timestamp: {entry['time']}</span>"
                     f"</div>",
@@ -512,10 +536,11 @@ elif page in ("Patient Risk Assessment", "Demonstration Scenarios"):
     if page == "Demonstration Scenarios":
         st.markdown('<div class="gs-section-title">Demonstration Scenarios</div>', unsafe_allow_html=True)
         st.caption(
-            "Three clinical reference scenarios illustrate model decision behavior across low, high, and threshold-edge risks."
+            "Three clinical reference archetypes illustrate model behavior across low, high, and threshold-edge risks. "
+            "Click any card to immediately load the preset and run the inference pipeline."
         )
         sc1, sc2, sc3 = st.columns(3)
-        scenario_cols = [
+        scenario_data = [
             (sc1, "Scenario 1: Low Risk (Negative)",
              "LOW RISK", "NEGATIVE",
              "27.1%",
@@ -529,25 +554,28 @@ elif page in ("Patient Risk Assessment", "Demonstration Scenarios"):
             (sc3, "Scenario 3: Borderline (Cutoff 0.45)",
              "BORDERLINE", "POSITIVE",
              "48.3%",
-             "Age 60–70, ischemic heart disease, moderate clinical complexity. Probability exceeds 0.45 cutoff -> POSITIVE prediction.",
+             "Age 60–70, ischemic heart disease, moderate complexity. Probability exceeds 0.45 cutoff -> POSITIVE prediction.",
              "pill-border"),
         ]
-        for col, key, tier, pred, pct, desc, pill in scenario_cols:
+        for col, key, tier, pred, pct, desc, pill in scenario_data:
             with col:
                 st.markdown(
                     f"""<div class="scenario-card">
-                    <span class="scenario-pill {pill}">{tier}</span>
-                    <div style="font-size:1.6rem;font-weight:700;color:{t['text']};margin:4px 0;">{pct}</div>
-                    <div style="font-size:0.76rem;color:{t['text_muted']};margin-bottom:8px;">
-                        Prediction: <strong>{pred}</strong>
+                    <div>
+                        <span class="scenario-pill {pill}">{tier}</span>
+                        <div style="font-size:1.6rem;font-weight:700;color:{t['text']};margin:4px 0;">{pct}</div>
+                        <div style="font-size:0.75rem;color:{t['text_muted']};margin-bottom:8px;">
+                            Prediction: <strong>{pred}</strong>
+                        </div>
+                        <div style="font-size:0.8rem;color:{t['text']};line-height:1.5;">{desc}</div>
                     </div>
-                    <div style="font-size:0.82rem;color:{t['text']};line-height:1.5;">{desc}</div>
                     </div>""",
                     unsafe_allow_html=True,
                 )
                 st.markdown("<br>", unsafe_allow_html=True)
-                if st.button(f"Load {key.split(':')[0]}", key=f"load_{key}", use_container_width=True):
+                if st.button(f"Load & Run {key.split(':')[0]}", key=f"load_{key}", use_container_width=True):
                     st.session_state["_force_preset"] = key
+                    st.session_state["_auto_submit"] = True
                     st.session_state.nav_page = "Patient Risk Assessment"
                     st.rerun()
 
@@ -557,20 +585,27 @@ elif page in ("Patient Risk Assessment", "Demonstration Scenarios"):
     else:
         st.markdown('<div class="gs-section-title">Patient Clinical Assessment at Discharge</div>', unsafe_allow_html=True)
 
+    # Handle preset selection
+    auto_submit = st.session_state.pop("_auto_submit", False)
     if "_force_preset" in st.session_state:
         preset_choice = st.session_state.pop("_force_preset")
-        dv = PRESETS.get(preset_choice, DEFAULT_VALS)
+    dv = PRESETS.get(preset_choice, DEFAULT_VALS)
 
     st.caption(
         f"Calibrated operating threshold: **{CLINICAL_DECISION_THRESHOLD:.2f}** · "
-        "Configured to achieve sensitivity >= 65% for inpatient readmission risk detection."
+        "Prioritizes sensitivity >= 65% for safe clinical readmission screening."
     )
 
-    # ── Assessment Form ───────────────────────────────────────────────────────
+    # ── Assessment Form (Organized into 4 Clinical Group Cards) ───────────────
     with st.form("patient_form", clear_on_submit=False):
 
-        # Section A: Demographics
-        st.markdown('<div class="gs-form-section-title">A. Patient Demographics</div>', unsafe_allow_html=True)
+        # Card A: Demographics & Admission
+        st.markdown(
+            f"""<div class="form-card">
+            <div class="form-card-title">A. Patient Demographics & Admission Context</div>
+            """,
+            unsafe_allow_html=True,
+        )
         da1, da2, da3, da4 = st.columns(4)
         with da1:
             age = st.selectbox("Age Bracket", AGE_OPTIONS, index=AGE_OPTIONS.index(dv["age"]))
@@ -584,67 +619,81 @@ elif page in ("Patient Risk Assessment", "Demonstration Scenarios"):
                 "Admission Type", ADMISSION_OPTIONS,
                 index=ADMISSION_OPTIONS.index(dv["admission_type"]) if dv["admission_type"] in ADMISSION_OPTIONS else 0,
             )
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # Section B: Hospitalization Details
-        st.markdown('<div class="gs-form-section-title">B. Hospitalization Details</div>', unsafe_allow_html=True)
+        # Card B: Inpatient Stay Details
+        st.markdown(
+            f"""<div class="form-card">
+            <div class="form-card-title">B. Hospitalization & Clinical Intensity</div>
+            """,
+            unsafe_allow_html=True,
+        )
         db1, db2, db3, db4, db5 = st.columns(5)
         with db1:
             time_in_hospital = st.number_input("Length of Stay (Days)", 1, 30, int(dv["time_in_hospital"]),
-                                                help="Standard clinical inpatient range is 1-14 days.")
+                                                help="Clinical inpatient range: 1 to 14 days standard.")
         with db2:
-            num_lab_procedures = st.number_input("Lab Procedures", 1, 150, int(dv["num_lab_procedures"]))
+            num_lab_procedures = st.number_input("Lab Procedures Count", 1, 150, int(dv["num_lab_procedures"]))
         with db3:
-            num_procedures = st.number_input("Non-Lab Procedures", 0, 15, int(dv["num_procedures"]))
+            num_procedures = st.number_input("Non-Lab Procedures Count", 0, 15, int(dv["num_procedures"]))
         with db4:
             num_medications = st.number_input("Medications Count", 1, 100, int(dv["num_medications"]))
         with db5:
             number_diagnoses = st.number_input("Diagnoses Count", 1, 16, int(dv["number_diagnoses"]))
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # Section C: Prior Utilization
-        st.markdown('<div class="gs-form-section-title">C. Prior Healthcare Utilization (Past 12 Months)</div>', unsafe_allow_html=True)
+        # Card C: Healthcare Utilization History
+        st.markdown(
+            f"""<div class="form-card">
+            <div class="form-card-title">C. Prior Healthcare Utilization (Past 12 Months)</div>
+            """,
+            unsafe_allow_html=True,
+        )
         dc1, dc2, dc3 = st.columns(3)
         with dc1:
-            number_inpatient = st.number_input("Prior Inpatient Stays", 0, 20, int(dv["number_inpatient"]),
-                                               help="Prior inpatient admissions in the past 12 months.")
+            number_inpatient = st.number_input(
+                "Prior Inpatient Stays (Past Year)", 0, 20, int(dv["number_inpatient"]),
+                help="Key predictor: prior inpatient stays carry the highest feature importance."
+            )
         with dc2:
-            number_emergency = st.number_input("Prior Emergency Visits", 0, 20, int(dv["number_emergency"]))
+            number_emergency = st.number_input("Prior Emergency Visits (Past Year)", 0, 20, int(dv["number_emergency"]))
         with dc3:
             number_outpatient = st.number_input("Prior Outpatient Visits", 0, 30, int(dv["number_outpatient"]))
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # Section D: Diabetes & Clinical Information
-        st.markdown('<div class="gs-form-section-title">D. Diabetes & Clinical Information</div>', unsafe_allow_html=True)
+        # Card D: Diabetes & Regimen
+        st.markdown(
+            f"""<div class="form-card">
+            <div class="form-card-title">D. Diabetes Glycemia & Regimen Management</div>
+            """,
+            unsafe_allow_html=True,
+        )
         dd1, dd2, dd3, dd4, dd5 = st.columns(5)
         with dd1:
             diag_1 = st.text_input("Primary ICD-9 Code", value=str(dv["diag_1"]),
-                                   help="e.g., 250 for Diabetes, 428 for Heart Failure, 414 for Ischemic Disease")
+                                   help="e.g., 250 for Diabetes, 428 for Heart Failure, 414 for Ischemic Heart Disease")
         with dd2:
-            a1c = st.selectbox("HbA1c Result", ["None", "Norm", ">7", ">8"],
+            a1c = st.selectbox("HbA1c Test Result", ["None", "Norm", ">7", ">8"],
                                index=["None", "Norm", ">7", ">8"].index(dv["a1c"]))
         with dd3:
             insulin = st.selectbox("Insulin Dosage Change", ["No", "Steady", "Up", "Down"],
                                    index=["No", "Steady", "Up", "Down"].index(dv["insulin"]))
         with dd4:
-            change = st.selectbox("Diabetes Med Change", ["No", "Ch"],
+            change = st.selectbox("Diabetes Med Change?", ["No", "Ch"],
                                   index=["No", "Ch"].index(dv["change"]))
         with dd5:
             diag_group_preview = map_icd9_to_category(dv["diag_1"])
             st.text_input("Diagnostic Group (Mapped)", value=diag_group_preview, disabled=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
         submit = st.form_submit_button(
             "Assess Readmission Risk",
             use_container_width=True,
             type="primary",
         )
 
-    # ── Inference Execution & Results ─────────────────────────────────────────
-    if submit:
+    # ── Inference Execution & Output ──────────────────────────────────────────
+    if submit or auto_submit:
         raw_patient = build_raw_patient(
             age, gender, race, admission_type, time_in_hospital,
             num_lab_procedures, num_procedures, num_medications,
@@ -652,7 +701,7 @@ elif page in ("Patient Risk Assessment", "Demonstration Scenarios"):
             number_diagnoses, diag_1, a1c, insulin, change,
         )
 
-        with st.spinner("Processing clinical input and computing risk..."):
+        with st.spinner("Processing clinical encounter through validation & inference pipeline..."):
             prob, errors, warnings, X_trans, cls = run_prediction(raw_patient)
 
         if errors:
@@ -696,110 +745,111 @@ elif page in ("Patient Risk Assessment", "Demonstration Scenarios"):
                         Probability {'≥' if cls['is_readmission_predicted'] else '<'} Cutoff
                         &nbsp;→&nbsp; {'POSITIVE' if cls['is_readmission_predicted'] else 'NEGATIVE'}
                     </div>
-                    <div style="margin-top:10px;font-size:0.83rem;line-height:1.5;">{cls['action_summary']}</div>
+                    <div style="margin-top:10px;font-size:0.8rem;line-height:1.5;">{cls['action_summary']}</div>
                     </div>""",
                     unsafe_allow_html=True,
                 )
 
-                st.markdown("<br>", unsafe_allow_html=True)
-                diag_grp = map_icd9_to_category(diag_1)
-                st.metric("Primary Diagnostic Group", diag_grp)
-                st.metric("Total Prior Utilization", int(number_inpatient + number_emergency + number_outpatient))
-
             with g_col:
                 st.markdown(
-                    f"<div style='font-size:0.76rem;font-weight:600;color:{t['text_muted']};"
-                    f"text-align:center;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;'>"
-                    f"Risk Probability Gauge</div>",
+                    f"""<div class="form-card" style="height:100%;margin:0;padding:12px;">
+                    <div class="form-card-title" style="text-align:center;">Risk Probability Gauge</div>
+                    """,
                     unsafe_allow_html=True,
                 )
                 st.plotly_chart(
-                    risk_gauge(prob, st.session_state.dark_mode),
+                    build_risk_gauge(prob, st.session_state.dark_mode),
                     use_container_width=True,
                     config={"displayModeBar": False},
                 )
                 st.markdown(
-                    f"""<div style="text-align:center;font-size:0.75rem;color:{t['text_muted']};">
+                    f"""<div style="text-align:center;font-size:0.72rem;color:{t['text_muted']};">
                     Low (&lt;40%) &nbsp;|&nbsp; Borderline (40–50%) &nbsp;|&nbsp; High (≥50%)<br>
                     Dashed marker indicates decision cutoff ({CLINICAL_DECISION_THRESHOLD:.2f})
+                    </div>
                     </div>""",
                     unsafe_allow_html=True,
                 )
 
             with e_col:
                 st.markdown(
-                    f"<div style='font-size:0.76rem;font-weight:600;color:{t['text_muted']};"
-                    f"text-transform:uppercase;letter-spacing:0.04em;'>TreeSHAP Factor Attribution</div>",
+                    f"""<div class="form-card" style="height:100%;margin:0;padding:12px;">
+                    <div class="form-card-title">TreeSHAP Factor Attribution</div>
+                    """,
                     unsafe_allow_html=True,
                 )
-                st.caption("Local feature contributions driving this patient's prediction:")
+                st.caption("Top bedside factors driving this patient's prediction:")
                 try:
-                    expl = explainer.explain_patient(X_trans, top_k=8)
+                    expl = explainer.explain_patient(X_trans, top_k=7)
                     factors = expl["top_factors"]
                     if factors:
                         st.plotly_chart(
-                            shap_bar_chart(factors, st.session_state.dark_mode),
+                            build_shap_bar_chart(factors, st.session_state.dark_mode),
                             use_container_width=True,
                             config={"displayModeBar": False},
                         )
-                        with st.expander("View Numerical Factor Impacts"):
-                            shap_df = pd.DataFrame([{
-                                "Clinical Factor": f["feature"].replace("num__","").replace("cat__","")
-                                                    .replace("remainder__","").replace("_"," ").title(),
-                                "Direction": f["direction"],
-                                "SHAP Value": f"{f['shap_impact']:+.4f}",
-                            } for f in factors])
-                            st.dataframe(shap_df, hide_index=True, use_container_width=True)
-                        st.caption(
-                            f"Base expected value: {expl.get('base_value', 0):.4f}. "
-                            "SHAP values reflect model feature weights, not biological causality."
-                        )
                 except Exception as ex:
                     st.warning(f"TreeSHAP attribution temporarily unavailable: {ex}")
+                st.markdown("</div>", unsafe_allow_html=True)
 
-            # Clinical discharge protocol checklist
+            # Clinical Discharge Protocol Section
             st.markdown("---")
             st.markdown('<div class="gs-section-title">Targeted Discharge Planning Protocol</div>', unsafe_allow_html=True)
-            st.caption(f"Interventions calibrated to risk tier (Operating Cutoff = {CLINICAL_DECISION_THRESHOLD:.2f}):")
 
-            if cls["is_readmission_predicted"]:
-                st.markdown("""
-- [ ] **Home Health Nursing Referral:** Coordinate visiting nurse evaluation within 48–72 hours post-discharge.
+            cp1, cp2 = st.columns([1.6, 1])
+            with cp1:
+                st.caption(f"Interventions calibrated to risk classification (Decision Threshold = {CLINICAL_DECISION_THRESHOLD:.2f}):")
+                if cls["is_readmission_predicted"]:
+                    st.markdown("""
+- [ ] **Home Health Nursing Referral:** Coordinate visiting nurse home visit within 48–72 hours post-discharge for vital sign checks and insulin coaching.
 - [ ] **Pharmacist Medication Reconciliation:** Conduct comprehensive review of discharge prescriptions, insulin dosing, and hypoglycemia safeguards.
-- [ ] **Accelerated Outpatient Appointment:** Schedule follow-up with primary care physician or endocrinologist within 7 days.
-- [ ] **Bedside Patient Education:** Review glucometer technique, signs of hyper/hypoglycemia, and diet adherence prior to release.
+- [ ] **Accelerated Outpatient Follow-up:** Schedule clinic appointment with primary care physician or diabetes specialist within 7 days.
+- [ ] **Bedside Patient Coaching:** 30-minute review on hypoglycemia recognition, diet stabilization, and glucometer coaching prior to discharge.
 - [ ] **Case Management Outreach:** Assign care coordinator for telephone check-in at 48 hours post-discharge.
-                """)
-            else:
-                st.markdown("""
-- [ ] **Standard Discharge Education:** Provide diabetes nutrition guidelines and routine medication administration schedules.
-- [ ] **Routine Outpatient Appointment:** Schedule standard follow-up within 14–30 days.
+                    """)
+                else:
+                    st.markdown("""
+- [ ] **Standard Discharge Education:** Provide diabetes nutrition guidelines and routine medication adherence pamphlets.
+- [ ] **Routine Outpatient Follow-up:** Schedule standard clinic follow-up within 14–30 days.
 - [ ] **Prescription Verification:** Confirm patient has active 30-day medication supply and pharmacy access.
-                """)
+                    """)
 
-            # Data Export
-            st.markdown("<br>", unsafe_allow_html=True)
-            export_data = {
-                "Assessment Timestamp": [datetime.datetime.now().isoformat()],
-                "Risk Probability": [f"{prob:.4f}"],
-                "Risk Tier": [cls["tier_label"]],
-                "Model Prediction": ["POSITIVE" if cls["is_readmission_predicted"] else "NEGATIVE"],
-                "Decision Cutoff": [CLINICAL_DECISION_THRESHOLD],
-                "Age Bracket": [age], "Gender": [gender], "Race": [race],
-                "Length of Stay": [time_in_hospital],
-                "Prior Inpatient Admissions": [number_inpatient],
-                "Primary ICD-9": [diag_1], "Diagnostic Group": [diag_grp],
-                "HbA1c": [a1c], "Insulin Change": [insulin],
-                "Governance Notice": ["Research Prototype — Not approved for autonomous diagnostic decisions"],
-            }
-            csv_bytes = pd.DataFrame(export_data).to_csv(index=False).encode()
-            st.download_button(
-                "Download Assessment Summary (CSV)",
-                data=csv_bytes,
-                file_name=f"glucoshield_assessment_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
+            with cp2:
+                diag_grp = map_icd9_to_category(diag_1)
+                st.markdown(
+                    f"""<div class="gs-info-box">
+                    <h4>Encounter Clinical Summary</h4>
+                    <b>Primary Diagnosis Group:</b> {diag_grp}<br>
+                    <b>Total Prior Hospital Encounters:</b> {int(number_inpatient + number_emergency + number_outpatient)}<br>
+                    <b>Length of Stay:</b> {time_in_hospital} days<br>
+                    <b>Total Medications:</b> {num_medications}<br>
+                    <b>Insulin Regimen Change:</b> {insulin}<br>
+                    <b>HbA1c Test:</b> {a1c}
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+
+                export_data = {
+                    "Assessment Timestamp": [datetime.datetime.now().isoformat()],
+                    "Risk Probability": [f"{prob:.4f}"],
+                    "Risk Tier": [cls["tier_label"]],
+                    "Model Prediction": ["POSITIVE" if cls["is_readmission_predicted"] else "NEGATIVE"],
+                    "Decision Cutoff": [CLINICAL_DECISION_THRESHOLD],
+                    "Age Bracket": [age], "Gender": [gender], "Race": [race],
+                    "Length of Stay": [time_in_hospital],
+                    "Prior Inpatient Admissions": [number_inpatient],
+                    "Primary ICD-9": [diag_1], "Diagnostic Group": [diag_grp],
+                    "HbA1c": [a1c], "Insulin Change": [insulin],
+                    "Notice": ["Academic Research Prototype — Not for autonomous diagnostic use"],
+                }
+                csv_bytes = pd.DataFrame(export_data).to_csv(index=False).encode()
+                st.download_button(
+                    "Download Assessment Summary (CSV)",
+                    data=csv_bytes,
+                    file_name=f"glucoshield_assessment_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -810,7 +860,7 @@ elif page == "Model Performance":
 
     metrics = [
         ("0.6465", "ROC-AUC", "Holdout test set (n=13,998)"),
-        ("0.158", "PR-AUC", "Low positive prevalence (8.9%)"),
+        ("0.158", "PR-AUC", "Low positive base rate (8.9%)"),
         ("65.71%", "Sensitivity / Recall", "Evaluated at 0.45 cutoff"),
         ("54.54%", "Specificity", "True negative rate"),
         ("12.48%", "Precision", "Positive predictive value"),
@@ -837,16 +887,14 @@ elif page == "Model Performance":
         with c1:
             if os.path.exists("plots/roc_curve.png"):
                 st.image("plots/roc_curve.png", caption="Multi-Model ROC Curves on 20% Holdout Test Set", use_container_width=True)
-            else:
-                st.info("ROC curve plot not found.")
         with c2:
             st.markdown(
                 f"""<div class="gs-info-box">
                 <h4>Interpretation of ROC-AUC = 0.6465</h4>
                 An area under the ROC curve of <b>0.6465</b> demonstrates discrimination ability
-                consistent with peer-reviewed literature for diabetes readmission prediction from administrative
+                consistent with published peer-reviewed literature for diabetes readmission prediction from administrative
                 encounter data (typical published range: 0.60 to 0.70).<br><br>
-                Administrative EHR datasets lack high-granularity clinical predictors such as continuous vital signs,
+                Administrative EHR claims datasets lack high-granularity clinical predictors such as bedside vital signs,
                 nursing notes, post-discharge social support, and pharmacy fulfillment adherence, which constrains
                 maximum discriminatory power.
                 </div>""",
@@ -1074,7 +1122,7 @@ elif page == "Monitoring & Drift Detection":
         yaxis=dict(gridcolor=t["border"]),
         xaxis=dict(gridcolor=t["border"]),
         margin=dict(t=50, b=10),
-        height=320,
+        height=310,
     )
     st.plotly_chart(fig_psi, use_container_width=True, config={"displayModeBar": False})
 
@@ -1197,7 +1245,7 @@ elif page == "About GlucoShield":
             which accounts for billions in avoidable healthcare expenditures and patient morbidity annually.
             <br><br>
             <strong>Core Technical Stack:</strong>
-            <table style="width:100%;font-size:0.83rem;margin-top:8px;">
+            <table style="width:100%;font-size:0.82rem;margin-top:8px;">
             <tr><td style="padding:3px 0;"><b>Modeling</b></td><td>XGBoost, scikit-learn, LightGBM</td></tr>
             <tr><td style="padding:3px 0;"><b>Explainability</b></td><td>TreeSHAP (ClinicalExplainer)</td></tr>
             <tr><td style="padding:3px 0;"><b>Application</b></td><td>Streamlit, Plotly</td></tr>
@@ -1225,7 +1273,7 @@ elif page == "About GlucoShield":
         st.markdown(
             f"""<div class="gs-info-box">
             <h4>Group 04 Team Roster</h4>
-            <ol style="font-size:0.82rem;line-height:1.9;padding-left:18px;margin:6px 0 0 0;">
+            <ol style="font-size:0.8rem;line-height:1.85;padding-left:18px;margin:4px 0 0 0;">
             <li><b>Bililign Yibgeta Amare</b> — Team Lead, ML Modeling, Pipeline & Architecture</li>
             <li><b>Gebreslase Getachew Alemu</b> — Domain Specialist & Clinical Workflow</li>
             <li><b>Belay Tilahun Alene</b> — Data Engineer, Preprocessing & Pipeline</li>
@@ -1244,7 +1292,7 @@ elif page == "About GlucoShield":
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PROFESSIONAL FOOTER
+# PROFESSIONAL MINIMAL FOOTER
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown(
     f"""
