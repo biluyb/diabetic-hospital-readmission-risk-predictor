@@ -8,7 +8,7 @@
 ---
 
 ### Team Members & Contributions
-1. **Bililign Yibgeta Amare** ⭐ **(Team Lead | Full-Stack Contributor: Data Engineering, ML Modeling, Evaluation, Prototype Development, Testing & Documentation)**
+1. **Bililign Yibgeta Amare**  **(Team Lead | Full-Stack Contributor: Data Engineering, ML Modeling, Evaluation, Prototype Development, Testing & Documentation)**
 2. **Gebreslase Getachew Alemu** (Domain Specialist / Clinical Workflow)
 3. **Belay Tilahun Alene** (Data Engineer / Preprocessing & Pipeline)
 4. **Chalachew Getu Amarebet** (ML Engineer / Hyperparameter Tuning & Evaluation)
